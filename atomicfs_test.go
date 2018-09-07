@@ -45,31 +45,45 @@ func Test_FileWriter_Write_osFS(t *testing.T) {
 	require.NoError(t, err)
 }
 
+type mocks struct {
+	fs   *fstest.FileSystem
+	file *fstest.File
+	sys  *systest.Syscall
+}
+
+func (m *mocks) assertions(t *testing.T) {
+	m.fs.AssertExpectations(t)
+	m.file.AssertExpectations(t)
+	m.sys.AssertExpectations(t)
+}
+
+func newMocks() *mocks {
+	return &mocks{
+		fs:   &fstest.FileSystem{},
+		file: &fstest.File{},
+		sys:  &systest.Syscall{},
+	}
+}
+
 func Test_FileWriter_Write(t *testing.T) {
-	mockFS := &fstest.FileSystem{}
-	defer mockFS.AssertExpectations(t)
+	mocks := newMocks()
+	defer mocks.assertions(t)
 
-	mockFile := &fstest.File{}
-	defer mockFile.AssertExpectations(t)
+	mocks.fs.On("Rename", mock.AnythingOfType("string"), "out.txt").Return(nil).Once()
+	mocks.fs.On("Open", ".").Return(mocks.file, nil).Once()
 
-	mockSys := &systest.Syscall{}
-	defer mockSys.AssertExpectations(t)
+	mocks.file.On("Sync").Return(nil).Once()
+	mocks.file.On("Close").Return(nil).Once()
 
-	mockFS.On("Rename", mock.AnythingOfType("string"), "out.txt").Return(nil).Once()
-	mockFS.On("Open", ".").Return(mockFile, nil).Once()
-
-	mockFile.On("Sync").Return(nil).Once()
-	mockFile.On("Close").Return(nil).Once()
-
-	mockSys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
-	mockSys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
 
 	writer := NewFileWriter(FileWriterOptions{
 		TmpDirectory: "/tmp",
 		TmpExtension: ".temp",
 		Mode:         0600,
-		FS:           mockFS,
-		Sys:          mockSys,
+		FS:           mocks.fs,
+		Sys:          mocks.sys,
 	})
 
 	input := strings.NewReader("foobar")
@@ -78,34 +92,164 @@ func Test_FileWriter_Write(t *testing.T) {
 }
 
 func Test_FileWriter_Write_bad_Rename(t *testing.T) {
-	mockFS := &fstest.FileSystem{}
-	defer mockFS.AssertExpectations(t)
+	mocks := newMocks()
+	defer mocks.assertions(t)
 
-	mockFile := &fstest.File{}
-	defer mockFile.AssertExpectations(t)
-
-	mockSys := &systest.Syscall{}
-	defer mockSys.AssertExpectations(t)
-
-	mockFS.On("Rename", mock.AnythingOfType("string"), "out.txt").Return(
+	mocks.fs.On("Rename", mock.AnythingOfType("string"), "out.txt").Return(
 		errors.New("rename failed"),
 	).Once()
 
-	mockFS.On("Remove", mock.AnythingOfType("string")).Return(nil).Once() // ignored
+	mocks.fs.On("Remove", mock.AnythingOfType("string")).Return(nil).Once() // ignored
 
-	mockSys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
-	mockSys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
 
 	writer := NewFileWriter(FileWriterOptions{
 		TmpDirectory: "/tmp",
 		TmpExtension: ".temp",
 		Mode:         0600,
-		FS:           mockFS,
-		Sys:          mockSys,
+		FS:           mocks.fs,
+		Sys:          mocks.sys,
 	})
 
 	input := strings.NewReader("foobar")
 	err := writer.Write(input, "out.txt")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "rename failed")
+}
+
+func Test_FileWriter_Write_bad_Open(t *testing.T) {
+	mocks := newMocks()
+	defer mocks.assertions(t)
+
+	mocks.fs.On("Rename", mock.AnythingOfType("string"), "out.txt").Return(nil).Once()
+	mocks.fs.On("Open", ".").Return(nil, errors.New(
+		"open failed",
+	)).Once()
+
+	mocks.fs.On("Remove", mock.AnythingOfType("string")).Return(nil).Once() // ignored
+
+	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+
+	writer := NewFileWriter(FileWriterOptions{
+		TmpDirectory: "/tmp",
+		TmpExtension: ".temp",
+		Mode:         0600,
+		FS:           mocks.fs,
+		Sys:          mocks.sys,
+	})
+
+	input := strings.NewReader("foobar")
+	err := writer.Write(input, "out.txt")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "open failed")
+}
+
+func Test_FileWriter_Write_bad_stat_destination(t *testing.T) {
+	mocks := newMocks()
+	defer mocks.assertions(t)
+
+	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(
+		errors.New("stat failed"),
+	).Once()
+
+	writer := NewFileWriter(FileWriterOptions{
+		TmpDirectory: "/tmp",
+		TmpExtension: ".temp",
+		Mode:         0600,
+		FS:           mocks.fs,
+		Sys:          mocks.sys,
+	})
+
+	input := strings.NewReader("foobar")
+	err := writer.Write(input, "out.txt")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "stat failed")
+}
+
+func Test_FileWriter_Write_bad_stat_tmp_dir(t *testing.T) {
+	mocks := newMocks()
+	defer mocks.assertions(t)
+
+	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(
+		errors.New("stat failed"),
+	).Once()
+
+	writer := NewFileWriter(FileWriterOptions{
+		TmpDirectory: "/tmp",
+		TmpExtension: ".temp",
+		Mode:         0600,
+		FS:           mocks.fs,
+		Sys:          mocks.sys,
+	})
+
+	input := strings.NewReader("foobar")
+	err := writer.Write(input, "out.txt")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "stat failed")
+}
+
+func Test_FileWriter_Write_bad_Sync(t *testing.T) {
+	mocks := newMocks()
+	defer mocks.assertions(t)
+
+	mocks.fs.On("Rename", mock.AnythingOfType("string"), "out.txt").Return(nil).Once()
+	mocks.fs.On("Open", ".").Return(mocks.file, nil).Once()
+
+	mocks.fs.On("Remove", mock.AnythingOfType("string")).Return(nil).Once() // ignored
+
+	mocks.file.On("Sync").Return(
+		errors.New("sync failed"),
+	).Once()
+	// mocks.file.On("Close").Return(nil).Once()
+
+	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+
+	writer := NewFileWriter(FileWriterOptions{
+		TmpDirectory: "/tmp",
+		TmpExtension: ".temp",
+		Mode:         0600,
+		FS:           mocks.fs,
+		Sys:          mocks.sys,
+	})
+
+	input := strings.NewReader("foobar")
+	err := writer.Write(input, "out.txt")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "sync failed")
+}
+
+func Test_FileWriter_Write_bad_Close(t *testing.T) {
+	mocks := newMocks()
+	defer mocks.assertions(t)
+
+	mocks.fs.On("Rename", mock.AnythingOfType("string"), "out.txt").Return(nil).Once()
+	mocks.fs.On("Open", ".").Return(mocks.file, nil).Once()
+
+	mocks.fs.On("Remove", mock.AnythingOfType("string")).Return(nil).Once() // ignored
+
+	mocks.file.On("Sync").Return(nil).Once()
+	mocks.file.On("Close").Return(
+		errors.New("close failed"),
+	).Once()
+
+	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+
+	writer := NewFileWriter(FileWriterOptions{
+		TmpDirectory: "/tmp",
+		TmpExtension: ".temp",
+		Mode:         0600,
+		FS:           mocks.fs,
+		Sys:          mocks.sys,
+	})
+
+	input := strings.NewReader("foobar")
+	err := writer.Write(input, "out.txt")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "close failed")
+
 }
