@@ -102,17 +102,17 @@ func (w *fsFileWriter) Write(source io.Reader, filePath string) error {
 func (w *fsFileWriter) checkDevice(fileDir string) error {
 	var stat syscall.Stat_t
 	if err := w.sys.Stat(fileDir, &stat); err != nil {
-		return errors.Wrapf(err, "atomicfs: unable to stat %s", fileDir)
+		return errors.Wrapf(err, "atomicfs: unable to stat destination directory %s", fileDir)
 	}
 	fileDirDeviceID := stat.Dev
 
 	if err := w.sys.Stat(w.tmpDir, &stat); err != nil {
-		return errors.Wrapf(err, "atomicfs: unable to stat %s", w.tmpDir)
+		return errors.Wrapf(err, "atomicfs: unable to stat tmp directory %s", w.tmpDir)
 	}
 	tmpDirDeviceID := stat.Dev
 
 	if fileDirDeviceID != tmpDirDeviceID {
-		return errors.Errorf("atomicfs: tmp & file directories not on same device")
+		return errors.Errorf("atomicfs: tmp & destination directories not on same device")
 	}
 
 	return nil
