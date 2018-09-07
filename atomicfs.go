@@ -8,14 +8,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/pkg/errors"
 	"github.com/shoenig/atomicfs/fs"
+	"github.com/shoenig/atomicfs/sys"
 )
 
 type FileWriter interface {
 	Write(io.Reader, string) error
-	// todo: WriteContext(context.Context, io.Reader, string) error
 }
 
 type FileWriterOptions struct {
@@ -23,6 +24,7 @@ type FileWriterOptions struct {
 	TmpExtension string
 	Mode         os.FileMode
 	FS           fs.FileSystem
+	Sys          sys.Syscall
 }
 
 func NewFileWriter(options FileWriterOptions) FileWriter {
@@ -46,11 +48,17 @@ func NewFileWriter(options FileWriterOptions) FileWriter {
 		fileSystem = fs.New()
 	}
 
+	systemCalls := options.Sys
+	if systemCalls == nil {
+		systemCalls = sys.New()
+	}
+
 	return &fsFileWriter{
 		tmpDir:   tmpDir,
 		tmpExt:   tmpExt,
 		fileMode: mode,
 		fs:       fileSystem,
+		sys:      systemCalls,
 	}
 }
 
@@ -59,21 +67,30 @@ type fsFileWriter struct {
 	tmpExt   string
 	fileMode os.FileMode
 	fs       fs.FileSystem
+	sys      sys.Syscall
 }
 
 func (w *fsFileWriter) Write(source io.Reader, filePath string) error {
-	if err := w.checkDevice(filePath); err != nil {
+	fileDir := filepath.Dir(filePath)
+	fileName := filepath.Base(filePath)
+
+	// 1) check the target directory is on the same filesystem device
+	// as the configured tmp directory - otherwise atomic operations
+	// are not possible
+	if err := w.checkDevice(fileDir); err != nil {
 		return err
 	}
 
-	fileName := filepath.Base(filePath)
-
+	// 2) write the content to a tmp file, also triggering
+	// a complete flush (fsync)
 	tmpPath, err := w.writeTmp(source, fileName)
 	if err != nil {
 		_ = w.fs.Remove(tmpPath)
 		return err
 	}
 
+	// 3) since we know the tmp file and destination file exist on the
+	// same device, a filesystem rename will be an atomic operation
 	if err := w.rename(tmpPath, filePath); err != nil {
 		_ = w.fs.Remove(tmpPath)
 		return err
@@ -82,7 +99,22 @@ func (w *fsFileWriter) Write(source io.Reader, filePath string) error {
 	return nil
 }
 
-func (w *fsFileWriter) checkDevice(filePath string) error {
+func (w *fsFileWriter) checkDevice(fileDir string) error {
+	var stat syscall.Stat_t
+	if err := w.sys.Stat(fileDir, &stat); err != nil {
+		return errors.Wrapf(err, "atomicfs: unable to stat %s", fileDir)
+	}
+	fileDirDeviceID := stat.Dev
+
+	if err := w.sys.Stat(w.tmpDir, &stat); err != nil {
+		return errors.Wrapf(err, "atomicfs: unable to stat %s", w.tmpDir)
+	}
+	tmpDirDeviceID := stat.Dev
+
+	if fileDirDeviceID != tmpDirDeviceID {
+		return errors.Errorf("atomicfs: tmp & file directories not on same device")
+	}
+
 	return nil
 }
 

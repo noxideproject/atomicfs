@@ -9,6 +9,7 @@ import (
 
 	"github.com/shoenig/atomicfs/fs"
 	"github.com/shoenig/atomicfs/fs/fstest"
+	"github.com/shoenig/atomicfs/sys/systest"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -48,16 +49,22 @@ func Test_FileWriter_Write(t *testing.T) {
 	mockFile := &fstest.File{}
 	defer mockFile.AssertExpectations(t)
 
+	mockSys := &systest.Syscall{}
+	defer mockSys.AssertExpectations(t)
+
 	mockFS.On("Rename", mock.AnythingOfType("string"), "out.txt").Return(nil)
 	mockFS.On("Open", ".").Return(mockFile, nil)
 	mockFile.On("Sync").Return(nil)
 	mockFile.On("Close").Return(nil)
+	mockSys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil)
+	mockSys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil)
 
 	writer := NewFileWriter(FileWriterOptions{
 		TmpDirectory: "/tmp",
 		TmpExtension: ".temp",
 		Mode:         0600,
 		FS:           mockFS,
+		Sys:          mockSys,
 	})
 
 	input := strings.NewReader("foobar")
