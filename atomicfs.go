@@ -15,10 +15,18 @@ import (
 	"github.com/shoenig/atomicfs/sys"
 )
 
+// A FileWriter is used to read content from a source and
+// write it to a destination file, or die trying without producing
+// corrupt data where the destination file should have been.
+//
+// The only design goal of a FileWriter is to be oriented around
+// correctness - performance is not a consideration.
 type FileWriter interface {
 	Write(io.Reader, string) error
 }
 
+// FileWriterOptions are used to configure the behavior of a
+// FileWriter when it is used to write a file.
 type FileWriterOptions struct {
 	TmpDirectory string
 	TmpExtension string
@@ -27,6 +35,9 @@ type FileWriterOptions struct {
 	Sys          sys.Syscall
 }
 
+// NewFileWriter creates a new FileWriter backed by the configuration
+// settings in the provided FileWriterOptions. Creating a FileWriter always
+// succeeds, filling in empty options with sane defaults.
 func NewFileWriter(options FileWriterOptions) FileWriter {
 	tmpExt := strings.TrimPrefix(options.TmpExtension, ".")
 	if tmpExt == "" {
