@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+//go:generate mockery -interface=FileSystem -package=fstest
+
 type FileSystem interface {
 	Create(name string) (File, error)
 	Mkdir(name string, perm os.FileMode) error
@@ -16,6 +18,8 @@ type FileSystem interface {
 	Rename(old, new string) error
 	Stat(name string) (os.FileInfo, error)
 }
+
+//go:generate mockery -interface=File -package=fstest
 
 type File interface {
 	Chdir() error
