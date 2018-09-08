@@ -22,23 +22,51 @@ import (
 // The only design goal of a FileWriter is to be oriented around
 // correctness - performance is not a consideration.
 type FileWriter interface {
+	// Write the contents of the io.Reader into a file at the
+	// destination filepath given.
 	Write(io.Reader, string) error
 }
 
-// FileWriterOptions are used to configure the behavior of a
+// Options are used to configure the behavior of a
 // FileWriter when it is used to write a file.
-type FileWriterOptions struct {
+type Options struct {
+	// TmpDirectory is where tmp files are generated during
+	// the process of writing a file in preparation for executing
+	// an atomic rename. Because of this, TmpDirectory *MUST* be on
+	// the same filesystem device as the destination file being
+	// written, otherwise, errors will be returned during the Write.
 	TmpDirectory string
+
+	// TmpExtension is used to demarcate the tmp files generated
+	// during the Write operation from other normal files. The
+	// extension is appended to the end of the filename of the
+	// destination file being written.
 	TmpExtension string
-	Mode         os.FileMode
-	FS           fs.FileSystem
-	Sys          sys.Syscall
+
+	// Mode is the file mode of the destination file to be written.
+	// If no Mode is provided, write only permissions for the user
+	// are used (i.e. 0200).
+	Mode os.FileMode
+
+	// FS is the underlying filesystem implementation to be used
+	// for writing files to disk. Typically this should be left
+	// nil, as then fs.FileSystem is used, which in turn is
+	// implemented using the file operations defined in the os
+	// package.
+	FS fs.FileSystem
+
+	// Sys is the underlying syscall implementation to be used,
+	// in this case only for stat-ing files. Typically this should
+	// be left nil, as then sys.Syscall is used, which in turn is
+	// implemented using the syscall implementation provided by
+	// the go runtime.
+	Sys sys.Syscall
 }
 
 // NewFileWriter creates a new FileWriter backed by the configuration
-// settings in the provided FileWriterOptions. Creating a FileWriter always
-// succeeds, filling in empty options with sane defaults.
-func NewFileWriter(options FileWriterOptions) FileWriter {
+// settings in the provided Options. Creating a FileWriter always
+// succeeds, replacing empty options with sane defaults.
+func NewFileWriter(options Options) FileWriter {
 	tmpExt := strings.TrimPrefix(options.TmpExtension, ".")
 	if tmpExt == "" {
 		tmpExt = "tmp"

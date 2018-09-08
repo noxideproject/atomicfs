@@ -31,7 +31,7 @@ func Test_FileWriter_Write_osFS(t *testing.T) {
 	tmpDir := setup(t)
 	defer cleanup(t, tmpDir)
 
-	writer := NewFileWriter(FileWriterOptions{
+	writer := NewFileWriter(Options{
 		TmpDirectory: tmpDir,
 		TmpExtension: ".tempfile",
 		Mode:         0600,
@@ -78,7 +78,7 @@ func Test_FileWriter_Write(t *testing.T) {
 	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
 	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
 
-	writer := NewFileWriter(FileWriterOptions{
+	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
 		TmpExtension: ".temp",
 		Mode:         0600,
@@ -104,7 +104,7 @@ func Test_FileWriter_Write_bad_Rename(t *testing.T) {
 	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
 	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
 
-	writer := NewFileWriter(FileWriterOptions{
+	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
 		TmpExtension: ".temp",
 		Mode:         0600,
@@ -132,7 +132,7 @@ func Test_FileWriter_Write_bad_Open(t *testing.T) {
 	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
 	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
 
-	writer := NewFileWriter(FileWriterOptions{
+	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
 		TmpExtension: ".temp",
 		Mode:         0600,
@@ -154,7 +154,7 @@ func Test_FileWriter_Write_bad_stat_destination(t *testing.T) {
 		errors.New("stat failed"),
 	).Once()
 
-	writer := NewFileWriter(FileWriterOptions{
+	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
 		TmpExtension: ".temp",
 		Mode:         0600,
@@ -177,7 +177,7 @@ func Test_FileWriter_Write_bad_stat_tmp_dir(t *testing.T) {
 		errors.New("stat failed"),
 	).Once()
 
-	writer := NewFileWriter(FileWriterOptions{
+	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
 		TmpExtension: ".temp",
 		Mode:         0600,
@@ -208,7 +208,7 @@ func Test_FileWriter_Write_bad_Sync(t *testing.T) {
 	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
 	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
 
-	writer := NewFileWriter(FileWriterOptions{
+	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
 		TmpExtension: ".temp",
 		Mode:         0600,
@@ -239,7 +239,7 @@ func Test_FileWriter_Write_bad_Close(t *testing.T) {
 	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
 	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
 
-	writer := NewFileWriter(FileWriterOptions{
+	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
 		TmpExtension: ".temp",
 		Mode:         0600,
