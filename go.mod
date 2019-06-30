@@ -1,9 +1,7 @@
-module github.com/shoenig/atomicfs
+module go.gophers.dev/pkgs/atomicfs
 
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/gojuno/minimock v0.0.0-20190617160801-48589a7befe5
 	github.com/pkg/errors v0.8.0
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.2.2
 )
