@@ -11,8 +11,9 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
-	"github.com/shoenig/atomicfs/fs"
-	"github.com/shoenig/atomicfs/sys"
+
+	"go.gophers.dev/pkgs/atomicfs/fs"
+	"go.gophers.dev/pkgs/atomicfs/sys"
 )
 
 // A FileWriter is used to read content from a source and

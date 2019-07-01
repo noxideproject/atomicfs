@@ -2,7 +2,7 @@ package sys
 
 import "syscall"
 
-//go:generate mockery -interface=Syscall -package=systest
+//go:generate go run github.com/gojuno/minimock/cmd/minimock -g -i Syscall -s _mock.go
 
 type Syscall interface {
 	Stat(string, *syscall.Stat_t) error

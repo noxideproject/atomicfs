@@ -6,14 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
-	"github.com/shoenig/atomicfs/fs"
-	"github.com/shoenig/atomicfs/fs/fstest"
-	"github.com/shoenig/atomicfs/sys"
-	"github.com/shoenig/atomicfs/sys/systest"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"go.gophers.dev/pkgs/atomicfs/fs"
+	"go.gophers.dev/pkgs/atomicfs/sys"
 )
 
 func setup(t *testing.T) string {
@@ -46,37 +45,46 @@ func Test_FileWriter_Write_osFS(t *testing.T) {
 }
 
 type mocks struct {
-	fs   *fstest.FileSystem
-	file *fstest.File
-	sys  *systest.Syscall
+	fs   *fs.FileSystemMock
+	file *fs.FileMock
+	sys  *sys.SyscallMock
 }
 
 func (m *mocks) assertions(t *testing.T) {
-	m.fs.AssertExpectations(t)
-	m.file.AssertExpectations(t)
-	m.sys.AssertExpectations(t)
+	t.Log("test over, asserting mock behavior")
+	m.fs.MinimockFinish()
+	m.file.MinimockFinish()
+	m.sys.MinimockFinish()
 }
 
-func newMocks() *mocks {
+func newMocks(t *testing.T) *mocks {
 	return &mocks{
-		fs:   &fstest.FileSystem{},
-		file: &fstest.File{},
-		sys:  &systest.Syscall{},
+		fs:   fs.NewFileSystemMock(t),
+		file: fs.NewFileMock(t),
+		sys:  sys.NewSyscallMock(t),
 	}
 }
 
 func Test_FileWriter_Write(t *testing.T) {
-	mocks := newMocks()
+	mocks := newMocks(t)
 	defer mocks.assertions(t)
 
-	mocks.fs.On("Rename", mock.AnythingOfType("string"), "out.txt").Return(nil).Once()
-	mocks.fs.On("Open", ".").Return(mocks.file, nil).Once()
+	mocks.fs.RenameMock.Set(func(_, newName string) error {
+		if newName != "out.txt" {
+			t.Fatal("expected out.txt as new name")
+		}
+		return nil
+	})
 
-	mocks.file.On("Sync").Return(nil).Once()
-	mocks.file.On("Close").Return(nil).Once()
-
-	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
-	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+	mocks.fs.OpenMock.Expect(".").Return(mocks.file, nil)
+	mocks.file.SyncMock.Return(nil)
+	mocks.file.CloseMock.Return(nil)
+	mocks.sys.StatMock.Set(func(name string, _ *syscall.Stat_t) error {
+		if name != "." && name != "/tmp" {
+			t.Fatal("expected name to be '.' or '/tmp'")
+		}
+		return nil
+	})
 
 	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
@@ -92,17 +100,27 @@ func Test_FileWriter_Write(t *testing.T) {
 }
 
 func Test_FileWriter_Write_bad_Rename(t *testing.T) {
-	mocks := newMocks()
+	mocks := newMocks(t)
 	defer mocks.assertions(t)
 
-	mocks.fs.On("Rename", mock.AnythingOfType("string"), "out.txt").Return(
-		errors.New("rename failed"),
-	).Once()
+	mocks.fs.RenameMock.Set(func(_, newName string) error {
+		if newName != "out.txt" {
+			t.Fatal("expected new file to be out.txt")
+		}
+		return errors.New("rename failed")
+	})
 
-	mocks.fs.On("Remove", mock.AnythingOfType("string")).Return(nil).Once() // ignored
+	mocks.fs.RemoveMock.Set(func(_ string) error {
+		// the file is some random .tmp file
+		return nil
+	})
 
-	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
-	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+	mocks.sys.StatMock.Set(func(name string, _ *syscall.Stat_t) error {
+		if name != "." && name != "/tmp" {
+			t.Fatal("expected name to be '.' or '/tmp'")
+		}
+		return nil
+	})
 
 	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
@@ -119,18 +137,25 @@ func Test_FileWriter_Write_bad_Rename(t *testing.T) {
 }
 
 func Test_FileWriter_Write_bad_Open(t *testing.T) {
-	mocks := newMocks()
+	mocks := newMocks(t)
 	defer mocks.assertions(t)
 
-	mocks.fs.On("Rename", mock.AnythingOfType("string"), "out.txt").Return(nil).Once()
-	mocks.fs.On("Open", ".").Return(nil, errors.New(
-		"open failed",
-	)).Once()
-
-	mocks.fs.On("Remove", mock.AnythingOfType("string")).Return(nil).Once() // ignored
-
-	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
-	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+	mocks.fs.RenameMock.Set(func(_, newName string) error {
+		if newName != "out.txt" {
+			t.Fatal("expected new name to be out.txt")
+		}
+		return nil
+	})
+	mocks.fs.OpenMock.Expect(".").Return(nil, errors.New("open failed"))
+	mocks.fs.RemoveMock.Set(func(_ string) error {
+		return nil
+	})
+	mocks.sys.StatMock.Set(func(name string, _ *syscall.Stat_t) error {
+		if name != "." && name != "/tmp" {
+			t.Fatal("expected name to be '.' or '/tmp'")
+		}
+		return nil
+	})
 
 	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
@@ -147,12 +172,15 @@ func Test_FileWriter_Write_bad_Open(t *testing.T) {
 }
 
 func Test_FileWriter_Write_bad_stat_destination(t *testing.T) {
-	mocks := newMocks()
+	mocks := newMocks(t)
 	defer mocks.assertions(t)
 
-	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(
-		errors.New("stat failed"),
-	).Once()
+	mocks.sys.StatMock.Set(func(name string, _ *syscall.Stat_t) error {
+		if name != "." {
+			t.Fatal("expected name to be '.'")
+		}
+		return errors.New("stat failed")
+	})
 
 	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
@@ -169,13 +197,21 @@ func Test_FileWriter_Write_bad_stat_destination(t *testing.T) {
 }
 
 func Test_FileWriter_Write_bad_stat_tmp_dir(t *testing.T) {
-	mocks := newMocks()
+	mocks := newMocks(t)
 	defer mocks.assertions(t)
 
-	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
-	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(
-		errors.New("stat failed"),
-	).Once()
+	mocks.sys.StatMock.Set(func(name string, _ *syscall.Stat_t) error {
+		if name == "." {
+			return nil
+		}
+
+		if name == "/tmp" {
+			return errors.New("stat failed")
+		}
+
+		t.Fatal("name expected to be '.' or '/tmp'")
+		return nil
+	})
 
 	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
@@ -192,21 +228,26 @@ func Test_FileWriter_Write_bad_stat_tmp_dir(t *testing.T) {
 }
 
 func Test_FileWriter_Write_bad_Sync(t *testing.T) {
-	mocks := newMocks()
+	mocks := newMocks(t)
 	defer mocks.assertions(t)
 
-	mocks.fs.On("Rename", mock.AnythingOfType("string"), "out.txt").Return(nil).Once()
-	mocks.fs.On("Open", ".").Return(mocks.file, nil).Once()
-
-	mocks.fs.On("Remove", mock.AnythingOfType("string")).Return(nil).Once() // ignored
-
-	mocks.file.On("Sync").Return(
-		errors.New("sync failed"),
-	).Once()
-	// mocks.file.On("Close").Return(nil).Once()
-
-	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
-	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+	mocks.fs.RenameMock.Set(func(_, old string) error {
+		if old != "out.txt" {
+			t.Fatal("expected new name to be 'out.txt'")
+		}
+		return nil
+	})
+	mocks.fs.OpenMock.Expect(".").Return(mocks.file, nil)
+	mocks.fs.RemoveMock.Set(func(_ string) error {
+		return nil
+	})
+	mocks.file.SyncMock.Return(errors.New("sync failed"))
+	mocks.sys.StatMock.Set(func(name string, _ *syscall.Stat_t) error {
+		if name != "." && name != "/tmp" {
+			t.Fatal("expected name to be '.' or '/tmp'")
+		}
+		return nil
+	})
 
 	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
@@ -223,21 +264,27 @@ func Test_FileWriter_Write_bad_Sync(t *testing.T) {
 }
 
 func Test_FileWriter_Write_bad_Close(t *testing.T) {
-	mocks := newMocks()
+	mocks := newMocks(t)
 	defer mocks.assertions(t)
 
-	mocks.fs.On("Rename", mock.AnythingOfType("string"), "out.txt").Return(nil).Once()
-	mocks.fs.On("Open", ".").Return(mocks.file, nil).Once()
-
-	mocks.fs.On("Remove", mock.AnythingOfType("string")).Return(nil).Once() // ignored
-
-	mocks.file.On("Sync").Return(nil).Once()
-	mocks.file.On("Close").Return(
-		errors.New("close failed"),
-	).Once()
-
-	mocks.sys.On("Stat", ".", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
-	mocks.sys.On("Stat", "/tmp", mock.AnythingOfType("*syscall.Stat_t")).Return(nil).Once()
+	mocks.fs.RenameMock.Set(func(_, newName string) error {
+		if newName != "out.txt" {
+			t.Fatal("expected new name to be 'out.txt'")
+		}
+		return nil
+	})
+	mocks.fs.OpenMock.Expect(".").Return(mocks.file, nil)
+	mocks.fs.RemoveMock.Set(func(_ string) error {
+		return nil
+	})
+	mocks.file.SyncMock.Return(nil)
+	mocks.file.CloseMock.Return(errors.New("close failed"))
+	mocks.sys.StatMock.Set(func(name string, _ *syscall.Stat_t) error {
+		if name != "." && name != "/tmp" {
+			t.Fatal("expected name to be '.' or '/tmp'")
+		}
+		return nil
+	})
 
 	writer := NewFileWriter(Options{
 		TmpDirectory: "/tmp",
@@ -251,5 +298,4 @@ func Test_FileWriter_Write_bad_Close(t *testing.T) {
 	err := writer.Write(input, "out.txt")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "close failed")
-
 }
