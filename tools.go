@@ -1,5 +1,3 @@
-//+build tools
-
 package atomicfs
 
 import (
