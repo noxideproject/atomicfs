@@ -1,4 +1,4 @@
-module go.gophers.dev/pkgs/atomicfs
+module gophers.dev/pkgs/atomicfs
 
 require (
 	github.com/gojuno/minimock v2.1.7+incompatible
