@@ -12,8 +12,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"go.gophers.dev/pkgs/atomicfs/fs"
-	"go.gophers.dev/pkgs/atomicfs/sys"
+	"gophers.dev/pkgs/atomicfs/fs"
+	"gophers.dev/pkgs/atomicfs/sys"
 )
 
 // A FileWriter is used to read content from a source and

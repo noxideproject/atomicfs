@@ -11,8 +11,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"go.gophers.dev/pkgs/atomicfs/fs"
-	"go.gophers.dev/pkgs/atomicfs/sys"
+	"gophers.dev/pkgs/atomicfs/fs"
+	"gophers.dev/pkgs/atomicfs/sys"
 )
 
 func setup(t *testing.T) string {
