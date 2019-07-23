@@ -1,5 +1,5 @@
 // Package atomicfs provides tools for doing all-or-nothing atomic filesystem operations in Go.
-package atomicfs
+package atomicfs // import "gophers.dev/pkgs/atomicfs"
 
 import (
 	"fmt"
