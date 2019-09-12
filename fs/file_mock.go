@@ -9,7 +9,7 @@ import (
 	"time"
 	mm_time "time"
 
-	"github.com/gojuno/minimock"
+	"github.com/gojuno/minimock/v3"
 )
 
 // FileMock implements File
@@ -17,101 +17,121 @@ type FileMock struct {
 	t minimock.Tester
 
 	funcChdir          func() (err error)
+	inspectFuncChdir   func()
 	afterChdirCounter  uint64
 	beforeChdirCounter uint64
 	ChdirMock          mFileMockChdir
 
 	funcChmod          func(mode os.FileMode) (err error)
+	inspectFuncChmod   func(mode os.FileMode)
 	afterChmodCounter  uint64
 	beforeChmodCounter uint64
 	ChmodMock          mFileMockChmod
 
 	funcChown          func(uid int, gid int) (err error)
+	inspectFuncChown   func(uid int, gid int)
 	afterChownCounter  uint64
 	beforeChownCounter uint64
 	ChownMock          mFileMockChown
 
 	funcClose          func() (err error)
+	inspectFuncClose   func()
 	afterCloseCounter  uint64
 	beforeCloseCounter uint64
 	CloseMock          mFileMockClose
 
 	funcFd          func() (u1 uintptr)
+	inspectFuncFd   func()
 	afterFdCounter  uint64
 	beforeFdCounter uint64
 	FdMock          mFileMockFd
 
 	funcName          func() (s1 string)
+	inspectFuncName   func()
 	afterNameCounter  uint64
 	beforeNameCounter uint64
 	NameMock          mFileMockName
 
 	funcRead          func(b []byte) (n int, err error)
+	inspectFuncRead   func(b []byte)
 	afterReadCounter  uint64
 	beforeReadCounter uint64
 	ReadMock          mFileMockRead
 
 	funcReadAt          func(b []byte, off int64) (n int, err error)
+	inspectFuncReadAt   func(b []byte, off int64)
 	afterReadAtCounter  uint64
 	beforeReadAtCounter uint64
 	ReadAtMock          mFileMockReadAt
 
 	funcReaddir          func(n int) (fa1 []os.FileInfo, err error)
+	inspectFuncReaddir   func(n int)
 	afterReaddirCounter  uint64
 	beforeReaddirCounter uint64
 	ReaddirMock          mFileMockReaddir
 
 	funcReaddirnames          func(n int) (names []string, err error)
+	inspectFuncReaddirnames   func(n int)
 	afterReaddirnamesCounter  uint64
 	beforeReaddirnamesCounter uint64
 	ReaddirnamesMock          mFileMockReaddirnames
 
 	funcSeek          func(offset int64, whence int) (ret int64, err error)
+	inspectFuncSeek   func(offset int64, whence int)
 	afterSeekCounter  uint64
 	beforeSeekCounter uint64
 	SeekMock          mFileMockSeek
 
 	funcSetDeadline          func(t time.Time) (err error)
+	inspectFuncSetDeadline   func(t time.Time)
 	afterSetDeadlineCounter  uint64
 	beforeSetDeadlineCounter uint64
 	SetDeadlineMock          mFileMockSetDeadline
 
 	funcSetReadDeadline          func(t time.Time) (err error)
+	inspectFuncSetReadDeadline   func(t time.Time)
 	afterSetReadDeadlineCounter  uint64
 	beforeSetReadDeadlineCounter uint64
 	SetReadDeadlineMock          mFileMockSetReadDeadline
 
 	funcSetWriteDeadline          func(t time.Time) (err error)
+	inspectFuncSetWriteDeadline   func(t time.Time)
 	afterSetWriteDeadlineCounter  uint64
 	beforeSetWriteDeadlineCounter uint64
 	SetWriteDeadlineMock          mFileMockSetWriteDeadline
 
 	funcStat          func() (f1 os.FileInfo, err error)
+	inspectFuncStat   func()
 	afterStatCounter  uint64
 	beforeStatCounter uint64
 	StatMock          mFileMockStat
 
 	funcSync          func() (err error)
+	inspectFuncSync   func()
 	afterSyncCounter  uint64
 	beforeSyncCounter uint64
 	SyncMock          mFileMockSync
 
 	funcTruncate          func(size int64) (err error)
+	inspectFuncTruncate   func(size int64)
 	afterTruncateCounter  uint64
 	beforeTruncateCounter uint64
 	TruncateMock          mFileMockTruncate
 
 	funcWrite          func(b []byte) (n int, err error)
+	inspectFuncWrite   func(b []byte)
 	afterWriteCounter  uint64
 	beforeWriteCounter uint64
 	WriteMock          mFileMockWrite
 
 	funcWriteAt          func(b []byte, off int64) (n int, err error)
+	inspectFuncWriteAt   func(b []byte, off int64)
 	afterWriteAtCounter  uint64
 	beforeWriteAtCounter uint64
 	WriteAtMock          mFileMockWriteAt
 
 	funcWriteString          func(s string) (n int, err error)
+	inspectFuncWriteString   func(s string)
 	afterWriteStringCounter  uint64
 	beforeWriteStringCounter uint64
 	WriteStringMock          mFileMockWriteString
@@ -213,6 +233,17 @@ func (mmChdir *mFileMockChdir) Expect() *mFileMockChdir {
 	return mmChdir
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Chdir
+func (mmChdir *mFileMockChdir) Inspect(f func()) *mFileMockChdir {
+	if mmChdir.mock.inspectFuncChdir != nil {
+		mmChdir.mock.t.Fatalf("Inspect function is already set for FileMock.Chdir")
+	}
+
+	mmChdir.mock.inspectFuncChdir = f
+
+	return mmChdir
+}
+
 // Return sets up results that will be returned by File.Chdir
 func (mmChdir *mFileMockChdir) Return(err error) *FileMock {
 	if mmChdir.mock.funcChdir != nil {
@@ -245,14 +276,18 @@ func (mmChdir *FileMock) Chdir() (err error) {
 	mm_atomic.AddUint64(&mmChdir.beforeChdirCounter, 1)
 	defer mm_atomic.AddUint64(&mmChdir.afterChdirCounter, 1)
 
+	if mmChdir.inspectFuncChdir != nil {
+		mmChdir.inspectFuncChdir()
+	}
+
 	if mmChdir.ChdirMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmChdir.ChdirMock.defaultExpectation.Counter, 1)
 
-		results := mmChdir.ChdirMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmChdir.ChdirMock.defaultExpectation.results
+		if mm_results == nil {
 			mmChdir.t.Fatal("No results are set for the FileMock.Chdir")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmChdir.funcChdir != nil {
 		return mmChdir.funcChdir()
@@ -356,6 +391,17 @@ func (mmChmod *mFileMockChmod) Expect(mode os.FileMode) *mFileMockChmod {
 	return mmChmod
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Chmod
+func (mmChmod *mFileMockChmod) Inspect(f func(mode os.FileMode)) *mFileMockChmod {
+	if mmChmod.mock.inspectFuncChmod != nil {
+		mmChmod.mock.t.Fatalf("Inspect function is already set for FileMock.Chmod")
+	}
+
+	mmChmod.mock.inspectFuncChmod = f
+
+	return mmChmod
+}
+
 // Return sets up results that will be returned by File.Chmod
 func (mmChmod *mFileMockChmod) Return(err error) *FileMock {
 	if mmChmod.mock.funcChmod != nil {
@@ -409,15 +455,19 @@ func (mmChmod *FileMock) Chmod(mode os.FileMode) (err error) {
 	mm_atomic.AddUint64(&mmChmod.beforeChmodCounter, 1)
 	defer mm_atomic.AddUint64(&mmChmod.afterChmodCounter, 1)
 
-	params := &FileMockChmodParams{mode}
+	if mmChmod.inspectFuncChmod != nil {
+		mmChmod.inspectFuncChmod(mode)
+	}
+
+	mm_params := &FileMockChmodParams{mode}
 
 	// Record call args
 	mmChmod.ChmodMock.mutex.Lock()
-	mmChmod.ChmodMock.callArgs = append(mmChmod.ChmodMock.callArgs, params)
+	mmChmod.ChmodMock.callArgs = append(mmChmod.ChmodMock.callArgs, mm_params)
 	mmChmod.ChmodMock.mutex.Unlock()
 
 	for _, e := range mmChmod.ChmodMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
@@ -425,17 +475,17 @@ func (mmChmod *FileMock) Chmod(mode os.FileMode) (err error) {
 
 	if mmChmod.ChmodMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmChmod.ChmodMock.defaultExpectation.Counter, 1)
-		want := mmChmod.ChmodMock.defaultExpectation.params
-		got := FileMockChmodParams{mode}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmChmod.t.Errorf("FileMock.Chmod got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmChmod.ChmodMock.defaultExpectation.params
+		mm_got := FileMockChmodParams{mode}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmChmod.t.Errorf("FileMock.Chmod got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmChmod.ChmodMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmChmod.ChmodMock.defaultExpectation.results
+		if mm_results == nil {
 			mmChmod.t.Fatal("No results are set for the FileMock.Chmod")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmChmod.funcChmod != nil {
 		return mmChmod.funcChmod(mode)
@@ -557,6 +607,17 @@ func (mmChown *mFileMockChown) Expect(uid int, gid int) *mFileMockChown {
 	return mmChown
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Chown
+func (mmChown *mFileMockChown) Inspect(f func(uid int, gid int)) *mFileMockChown {
+	if mmChown.mock.inspectFuncChown != nil {
+		mmChown.mock.t.Fatalf("Inspect function is already set for FileMock.Chown")
+	}
+
+	mmChown.mock.inspectFuncChown = f
+
+	return mmChown
+}
+
 // Return sets up results that will be returned by File.Chown
 func (mmChown *mFileMockChown) Return(err error) *FileMock {
 	if mmChown.mock.funcChown != nil {
@@ -610,15 +671,19 @@ func (mmChown *FileMock) Chown(uid int, gid int) (err error) {
 	mm_atomic.AddUint64(&mmChown.beforeChownCounter, 1)
 	defer mm_atomic.AddUint64(&mmChown.afterChownCounter, 1)
 
-	params := &FileMockChownParams{uid, gid}
+	if mmChown.inspectFuncChown != nil {
+		mmChown.inspectFuncChown(uid, gid)
+	}
+
+	mm_params := &FileMockChownParams{uid, gid}
 
 	// Record call args
 	mmChown.ChownMock.mutex.Lock()
-	mmChown.ChownMock.callArgs = append(mmChown.ChownMock.callArgs, params)
+	mmChown.ChownMock.callArgs = append(mmChown.ChownMock.callArgs, mm_params)
 	mmChown.ChownMock.mutex.Unlock()
 
 	for _, e := range mmChown.ChownMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
@@ -626,17 +691,17 @@ func (mmChown *FileMock) Chown(uid int, gid int) (err error) {
 
 	if mmChown.ChownMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmChown.ChownMock.defaultExpectation.Counter, 1)
-		want := mmChown.ChownMock.defaultExpectation.params
-		got := FileMockChownParams{uid, gid}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmChown.t.Errorf("FileMock.Chown got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmChown.ChownMock.defaultExpectation.params
+		mm_got := FileMockChownParams{uid, gid}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmChown.t.Errorf("FileMock.Chown got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmChown.ChownMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmChown.ChownMock.defaultExpectation.results
+		if mm_results == nil {
 			mmChown.t.Fatal("No results are set for the FileMock.Chown")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmChown.funcChown != nil {
 		return mmChown.funcChown(uid, gid)
@@ -742,6 +807,17 @@ func (mmClose *mFileMockClose) Expect() *mFileMockClose {
 	return mmClose
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Close
+func (mmClose *mFileMockClose) Inspect(f func()) *mFileMockClose {
+	if mmClose.mock.inspectFuncClose != nil {
+		mmClose.mock.t.Fatalf("Inspect function is already set for FileMock.Close")
+	}
+
+	mmClose.mock.inspectFuncClose = f
+
+	return mmClose
+}
+
 // Return sets up results that will be returned by File.Close
 func (mmClose *mFileMockClose) Return(err error) *FileMock {
 	if mmClose.mock.funcClose != nil {
@@ -774,14 +850,18 @@ func (mmClose *FileMock) Close() (err error) {
 	mm_atomic.AddUint64(&mmClose.beforeCloseCounter, 1)
 	defer mm_atomic.AddUint64(&mmClose.afterCloseCounter, 1)
 
+	if mmClose.inspectFuncClose != nil {
+		mmClose.inspectFuncClose()
+	}
+
 	if mmClose.CloseMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmClose.CloseMock.defaultExpectation.Counter, 1)
 
-		results := mmClose.CloseMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmClose.CloseMock.defaultExpectation.results
+		if mm_results == nil {
 			mmClose.t.Fatal("No results are set for the FileMock.Close")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmClose.funcClose != nil {
 		return mmClose.funcClose()
@@ -870,6 +950,17 @@ func (mmFd *mFileMockFd) Expect() *mFileMockFd {
 	return mmFd
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Fd
+func (mmFd *mFileMockFd) Inspect(f func()) *mFileMockFd {
+	if mmFd.mock.inspectFuncFd != nil {
+		mmFd.mock.t.Fatalf("Inspect function is already set for FileMock.Fd")
+	}
+
+	mmFd.mock.inspectFuncFd = f
+
+	return mmFd
+}
+
 // Return sets up results that will be returned by File.Fd
 func (mmFd *mFileMockFd) Return(u1 uintptr) *FileMock {
 	if mmFd.mock.funcFd != nil {
@@ -902,14 +993,18 @@ func (mmFd *FileMock) Fd() (u1 uintptr) {
 	mm_atomic.AddUint64(&mmFd.beforeFdCounter, 1)
 	defer mm_atomic.AddUint64(&mmFd.afterFdCounter, 1)
 
+	if mmFd.inspectFuncFd != nil {
+		mmFd.inspectFuncFd()
+	}
+
 	if mmFd.FdMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmFd.FdMock.defaultExpectation.Counter, 1)
 
-		results := mmFd.FdMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmFd.FdMock.defaultExpectation.results
+		if mm_results == nil {
 			mmFd.t.Fatal("No results are set for the FileMock.Fd")
 		}
-		return (*results).u1
+		return (*mm_results).u1
 	}
 	if mmFd.funcFd != nil {
 		return mmFd.funcFd()
@@ -998,6 +1093,17 @@ func (mmName *mFileMockName) Expect() *mFileMockName {
 	return mmName
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Name
+func (mmName *mFileMockName) Inspect(f func()) *mFileMockName {
+	if mmName.mock.inspectFuncName != nil {
+		mmName.mock.t.Fatalf("Inspect function is already set for FileMock.Name")
+	}
+
+	mmName.mock.inspectFuncName = f
+
+	return mmName
+}
+
 // Return sets up results that will be returned by File.Name
 func (mmName *mFileMockName) Return(s1 string) *FileMock {
 	if mmName.mock.funcName != nil {
@@ -1030,14 +1136,18 @@ func (mmName *FileMock) Name() (s1 string) {
 	mm_atomic.AddUint64(&mmName.beforeNameCounter, 1)
 	defer mm_atomic.AddUint64(&mmName.afterNameCounter, 1)
 
+	if mmName.inspectFuncName != nil {
+		mmName.inspectFuncName()
+	}
+
 	if mmName.NameMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmName.NameMock.defaultExpectation.Counter, 1)
 
-		results := mmName.NameMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmName.NameMock.defaultExpectation.results
+		if mm_results == nil {
 			mmName.t.Fatal("No results are set for the FileMock.Name")
 		}
-		return (*results).s1
+		return (*mm_results).s1
 	}
 	if mmName.funcName != nil {
 		return mmName.funcName()
@@ -1142,6 +1252,17 @@ func (mmRead *mFileMockRead) Expect(b []byte) *mFileMockRead {
 	return mmRead
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Read
+func (mmRead *mFileMockRead) Inspect(f func(b []byte)) *mFileMockRead {
+	if mmRead.mock.inspectFuncRead != nil {
+		mmRead.mock.t.Fatalf("Inspect function is already set for FileMock.Read")
+	}
+
+	mmRead.mock.inspectFuncRead = f
+
+	return mmRead
+}
+
 // Return sets up results that will be returned by File.Read
 func (mmRead *mFileMockRead) Return(n int, err error) *FileMock {
 	if mmRead.mock.funcRead != nil {
@@ -1195,15 +1316,19 @@ func (mmRead *FileMock) Read(b []byte) (n int, err error) {
 	mm_atomic.AddUint64(&mmRead.beforeReadCounter, 1)
 	defer mm_atomic.AddUint64(&mmRead.afterReadCounter, 1)
 
-	params := &FileMockReadParams{b}
+	if mmRead.inspectFuncRead != nil {
+		mmRead.inspectFuncRead(b)
+	}
+
+	mm_params := &FileMockReadParams{b}
 
 	// Record call args
 	mmRead.ReadMock.mutex.Lock()
-	mmRead.ReadMock.callArgs = append(mmRead.ReadMock.callArgs, params)
+	mmRead.ReadMock.callArgs = append(mmRead.ReadMock.callArgs, mm_params)
 	mmRead.ReadMock.mutex.Unlock()
 
 	for _, e := range mmRead.ReadMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.n, e.results.err
 		}
@@ -1211,17 +1336,17 @@ func (mmRead *FileMock) Read(b []byte) (n int, err error) {
 
 	if mmRead.ReadMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmRead.ReadMock.defaultExpectation.Counter, 1)
-		want := mmRead.ReadMock.defaultExpectation.params
-		got := FileMockReadParams{b}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmRead.t.Errorf("FileMock.Read got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmRead.ReadMock.defaultExpectation.params
+		mm_got := FileMockReadParams{b}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmRead.t.Errorf("FileMock.Read got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmRead.ReadMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmRead.ReadMock.defaultExpectation.results
+		if mm_results == nil {
 			mmRead.t.Fatal("No results are set for the FileMock.Read")
 		}
-		return (*results).n, (*results).err
+		return (*mm_results).n, (*mm_results).err
 	}
 	if mmRead.funcRead != nil {
 		return mmRead.funcRead(b)
@@ -1344,6 +1469,17 @@ func (mmReadAt *mFileMockReadAt) Expect(b []byte, off int64) *mFileMockReadAt {
 	return mmReadAt
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.ReadAt
+func (mmReadAt *mFileMockReadAt) Inspect(f func(b []byte, off int64)) *mFileMockReadAt {
+	if mmReadAt.mock.inspectFuncReadAt != nil {
+		mmReadAt.mock.t.Fatalf("Inspect function is already set for FileMock.ReadAt")
+	}
+
+	mmReadAt.mock.inspectFuncReadAt = f
+
+	return mmReadAt
+}
+
 // Return sets up results that will be returned by File.ReadAt
 func (mmReadAt *mFileMockReadAt) Return(n int, err error) *FileMock {
 	if mmReadAt.mock.funcReadAt != nil {
@@ -1397,15 +1533,19 @@ func (mmReadAt *FileMock) ReadAt(b []byte, off int64) (n int, err error) {
 	mm_atomic.AddUint64(&mmReadAt.beforeReadAtCounter, 1)
 	defer mm_atomic.AddUint64(&mmReadAt.afterReadAtCounter, 1)
 
-	params := &FileMockReadAtParams{b, off}
+	if mmReadAt.inspectFuncReadAt != nil {
+		mmReadAt.inspectFuncReadAt(b, off)
+	}
+
+	mm_params := &FileMockReadAtParams{b, off}
 
 	// Record call args
 	mmReadAt.ReadAtMock.mutex.Lock()
-	mmReadAt.ReadAtMock.callArgs = append(mmReadAt.ReadAtMock.callArgs, params)
+	mmReadAt.ReadAtMock.callArgs = append(mmReadAt.ReadAtMock.callArgs, mm_params)
 	mmReadAt.ReadAtMock.mutex.Unlock()
 
 	for _, e := range mmReadAt.ReadAtMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.n, e.results.err
 		}
@@ -1413,17 +1553,17 @@ func (mmReadAt *FileMock) ReadAt(b []byte, off int64) (n int, err error) {
 
 	if mmReadAt.ReadAtMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmReadAt.ReadAtMock.defaultExpectation.Counter, 1)
-		want := mmReadAt.ReadAtMock.defaultExpectation.params
-		got := FileMockReadAtParams{b, off}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmReadAt.t.Errorf("FileMock.ReadAt got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmReadAt.ReadAtMock.defaultExpectation.params
+		mm_got := FileMockReadAtParams{b, off}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmReadAt.t.Errorf("FileMock.ReadAt got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmReadAt.ReadAtMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmReadAt.ReadAtMock.defaultExpectation.results
+		if mm_results == nil {
 			mmReadAt.t.Fatal("No results are set for the FileMock.ReadAt")
 		}
-		return (*results).n, (*results).err
+		return (*mm_results).n, (*mm_results).err
 	}
 	if mmReadAt.funcReadAt != nil {
 		return mmReadAt.funcReadAt(b, off)
@@ -1545,6 +1685,17 @@ func (mmReaddir *mFileMockReaddir) Expect(n int) *mFileMockReaddir {
 	return mmReaddir
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Readdir
+func (mmReaddir *mFileMockReaddir) Inspect(f func(n int)) *mFileMockReaddir {
+	if mmReaddir.mock.inspectFuncReaddir != nil {
+		mmReaddir.mock.t.Fatalf("Inspect function is already set for FileMock.Readdir")
+	}
+
+	mmReaddir.mock.inspectFuncReaddir = f
+
+	return mmReaddir
+}
+
 // Return sets up results that will be returned by File.Readdir
 func (mmReaddir *mFileMockReaddir) Return(fa1 []os.FileInfo, err error) *FileMock {
 	if mmReaddir.mock.funcReaddir != nil {
@@ -1598,15 +1749,19 @@ func (mmReaddir *FileMock) Readdir(n int) (fa1 []os.FileInfo, err error) {
 	mm_atomic.AddUint64(&mmReaddir.beforeReaddirCounter, 1)
 	defer mm_atomic.AddUint64(&mmReaddir.afterReaddirCounter, 1)
 
-	params := &FileMockReaddirParams{n}
+	if mmReaddir.inspectFuncReaddir != nil {
+		mmReaddir.inspectFuncReaddir(n)
+	}
+
+	mm_params := &FileMockReaddirParams{n}
 
 	// Record call args
 	mmReaddir.ReaddirMock.mutex.Lock()
-	mmReaddir.ReaddirMock.callArgs = append(mmReaddir.ReaddirMock.callArgs, params)
+	mmReaddir.ReaddirMock.callArgs = append(mmReaddir.ReaddirMock.callArgs, mm_params)
 	mmReaddir.ReaddirMock.mutex.Unlock()
 
 	for _, e := range mmReaddir.ReaddirMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.fa1, e.results.err
 		}
@@ -1614,17 +1769,17 @@ func (mmReaddir *FileMock) Readdir(n int) (fa1 []os.FileInfo, err error) {
 
 	if mmReaddir.ReaddirMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmReaddir.ReaddirMock.defaultExpectation.Counter, 1)
-		want := mmReaddir.ReaddirMock.defaultExpectation.params
-		got := FileMockReaddirParams{n}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmReaddir.t.Errorf("FileMock.Readdir got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmReaddir.ReaddirMock.defaultExpectation.params
+		mm_got := FileMockReaddirParams{n}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmReaddir.t.Errorf("FileMock.Readdir got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmReaddir.ReaddirMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmReaddir.ReaddirMock.defaultExpectation.results
+		if mm_results == nil {
 			mmReaddir.t.Fatal("No results are set for the FileMock.Readdir")
 		}
-		return (*results).fa1, (*results).err
+		return (*mm_results).fa1, (*mm_results).err
 	}
 	if mmReaddir.funcReaddir != nil {
 		return mmReaddir.funcReaddir(n)
@@ -1746,6 +1901,17 @@ func (mmReaddirnames *mFileMockReaddirnames) Expect(n int) *mFileMockReaddirname
 	return mmReaddirnames
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Readdirnames
+func (mmReaddirnames *mFileMockReaddirnames) Inspect(f func(n int)) *mFileMockReaddirnames {
+	if mmReaddirnames.mock.inspectFuncReaddirnames != nil {
+		mmReaddirnames.mock.t.Fatalf("Inspect function is already set for FileMock.Readdirnames")
+	}
+
+	mmReaddirnames.mock.inspectFuncReaddirnames = f
+
+	return mmReaddirnames
+}
+
 // Return sets up results that will be returned by File.Readdirnames
 func (mmReaddirnames *mFileMockReaddirnames) Return(names []string, err error) *FileMock {
 	if mmReaddirnames.mock.funcReaddirnames != nil {
@@ -1799,15 +1965,19 @@ func (mmReaddirnames *FileMock) Readdirnames(n int) (names []string, err error) 
 	mm_atomic.AddUint64(&mmReaddirnames.beforeReaddirnamesCounter, 1)
 	defer mm_atomic.AddUint64(&mmReaddirnames.afterReaddirnamesCounter, 1)
 
-	params := &FileMockReaddirnamesParams{n}
+	if mmReaddirnames.inspectFuncReaddirnames != nil {
+		mmReaddirnames.inspectFuncReaddirnames(n)
+	}
+
+	mm_params := &FileMockReaddirnamesParams{n}
 
 	// Record call args
 	mmReaddirnames.ReaddirnamesMock.mutex.Lock()
-	mmReaddirnames.ReaddirnamesMock.callArgs = append(mmReaddirnames.ReaddirnamesMock.callArgs, params)
+	mmReaddirnames.ReaddirnamesMock.callArgs = append(mmReaddirnames.ReaddirnamesMock.callArgs, mm_params)
 	mmReaddirnames.ReaddirnamesMock.mutex.Unlock()
 
 	for _, e := range mmReaddirnames.ReaddirnamesMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.names, e.results.err
 		}
@@ -1815,17 +1985,17 @@ func (mmReaddirnames *FileMock) Readdirnames(n int) (names []string, err error) 
 
 	if mmReaddirnames.ReaddirnamesMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmReaddirnames.ReaddirnamesMock.defaultExpectation.Counter, 1)
-		want := mmReaddirnames.ReaddirnamesMock.defaultExpectation.params
-		got := FileMockReaddirnamesParams{n}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmReaddirnames.t.Errorf("FileMock.Readdirnames got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmReaddirnames.ReaddirnamesMock.defaultExpectation.params
+		mm_got := FileMockReaddirnamesParams{n}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmReaddirnames.t.Errorf("FileMock.Readdirnames got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmReaddirnames.ReaddirnamesMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmReaddirnames.ReaddirnamesMock.defaultExpectation.results
+		if mm_results == nil {
 			mmReaddirnames.t.Fatal("No results are set for the FileMock.Readdirnames")
 		}
-		return (*results).names, (*results).err
+		return (*mm_results).names, (*mm_results).err
 	}
 	if mmReaddirnames.funcReaddirnames != nil {
 		return mmReaddirnames.funcReaddirnames(n)
@@ -1948,6 +2118,17 @@ func (mmSeek *mFileMockSeek) Expect(offset int64, whence int) *mFileMockSeek {
 	return mmSeek
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Seek
+func (mmSeek *mFileMockSeek) Inspect(f func(offset int64, whence int)) *mFileMockSeek {
+	if mmSeek.mock.inspectFuncSeek != nil {
+		mmSeek.mock.t.Fatalf("Inspect function is already set for FileMock.Seek")
+	}
+
+	mmSeek.mock.inspectFuncSeek = f
+
+	return mmSeek
+}
+
 // Return sets up results that will be returned by File.Seek
 func (mmSeek *mFileMockSeek) Return(ret int64, err error) *FileMock {
 	if mmSeek.mock.funcSeek != nil {
@@ -2001,15 +2182,19 @@ func (mmSeek *FileMock) Seek(offset int64, whence int) (ret int64, err error) {
 	mm_atomic.AddUint64(&mmSeek.beforeSeekCounter, 1)
 	defer mm_atomic.AddUint64(&mmSeek.afterSeekCounter, 1)
 
-	params := &FileMockSeekParams{offset, whence}
+	if mmSeek.inspectFuncSeek != nil {
+		mmSeek.inspectFuncSeek(offset, whence)
+	}
+
+	mm_params := &FileMockSeekParams{offset, whence}
 
 	// Record call args
 	mmSeek.SeekMock.mutex.Lock()
-	mmSeek.SeekMock.callArgs = append(mmSeek.SeekMock.callArgs, params)
+	mmSeek.SeekMock.callArgs = append(mmSeek.SeekMock.callArgs, mm_params)
 	mmSeek.SeekMock.mutex.Unlock()
 
 	for _, e := range mmSeek.SeekMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.ret, e.results.err
 		}
@@ -2017,17 +2202,17 @@ func (mmSeek *FileMock) Seek(offset int64, whence int) (ret int64, err error) {
 
 	if mmSeek.SeekMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmSeek.SeekMock.defaultExpectation.Counter, 1)
-		want := mmSeek.SeekMock.defaultExpectation.params
-		got := FileMockSeekParams{offset, whence}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmSeek.t.Errorf("FileMock.Seek got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmSeek.SeekMock.defaultExpectation.params
+		mm_got := FileMockSeekParams{offset, whence}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSeek.t.Errorf("FileMock.Seek got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmSeek.SeekMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmSeek.SeekMock.defaultExpectation.results
+		if mm_results == nil {
 			mmSeek.t.Fatal("No results are set for the FileMock.Seek")
 		}
-		return (*results).ret, (*results).err
+		return (*mm_results).ret, (*mm_results).err
 	}
 	if mmSeek.funcSeek != nil {
 		return mmSeek.funcSeek(offset, whence)
@@ -2148,6 +2333,17 @@ func (mmSetDeadline *mFileMockSetDeadline) Expect(t time.Time) *mFileMockSetDead
 	return mmSetDeadline
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.SetDeadline
+func (mmSetDeadline *mFileMockSetDeadline) Inspect(f func(t time.Time)) *mFileMockSetDeadline {
+	if mmSetDeadline.mock.inspectFuncSetDeadline != nil {
+		mmSetDeadline.mock.t.Fatalf("Inspect function is already set for FileMock.SetDeadline")
+	}
+
+	mmSetDeadline.mock.inspectFuncSetDeadline = f
+
+	return mmSetDeadline
+}
+
 // Return sets up results that will be returned by File.SetDeadline
 func (mmSetDeadline *mFileMockSetDeadline) Return(err error) *FileMock {
 	if mmSetDeadline.mock.funcSetDeadline != nil {
@@ -2201,15 +2397,19 @@ func (mmSetDeadline *FileMock) SetDeadline(t time.Time) (err error) {
 	mm_atomic.AddUint64(&mmSetDeadline.beforeSetDeadlineCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetDeadline.afterSetDeadlineCounter, 1)
 
-	params := &FileMockSetDeadlineParams{t}
+	if mmSetDeadline.inspectFuncSetDeadline != nil {
+		mmSetDeadline.inspectFuncSetDeadline(t)
+	}
+
+	mm_params := &FileMockSetDeadlineParams{t}
 
 	// Record call args
 	mmSetDeadline.SetDeadlineMock.mutex.Lock()
-	mmSetDeadline.SetDeadlineMock.callArgs = append(mmSetDeadline.SetDeadlineMock.callArgs, params)
+	mmSetDeadline.SetDeadlineMock.callArgs = append(mmSetDeadline.SetDeadlineMock.callArgs, mm_params)
 	mmSetDeadline.SetDeadlineMock.mutex.Unlock()
 
 	for _, e := range mmSetDeadline.SetDeadlineMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
@@ -2217,17 +2417,17 @@ func (mmSetDeadline *FileMock) SetDeadline(t time.Time) (err error) {
 
 	if mmSetDeadline.SetDeadlineMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmSetDeadline.SetDeadlineMock.defaultExpectation.Counter, 1)
-		want := mmSetDeadline.SetDeadlineMock.defaultExpectation.params
-		got := FileMockSetDeadlineParams{t}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmSetDeadline.t.Errorf("FileMock.SetDeadline got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmSetDeadline.SetDeadlineMock.defaultExpectation.params
+		mm_got := FileMockSetDeadlineParams{t}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetDeadline.t.Errorf("FileMock.SetDeadline got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmSetDeadline.SetDeadlineMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmSetDeadline.SetDeadlineMock.defaultExpectation.results
+		if mm_results == nil {
 			mmSetDeadline.t.Fatal("No results are set for the FileMock.SetDeadline")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmSetDeadline.funcSetDeadline != nil {
 		return mmSetDeadline.funcSetDeadline(t)
@@ -2348,6 +2548,17 @@ func (mmSetReadDeadline *mFileMockSetReadDeadline) Expect(t time.Time) *mFileMoc
 	return mmSetReadDeadline
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.SetReadDeadline
+func (mmSetReadDeadline *mFileMockSetReadDeadline) Inspect(f func(t time.Time)) *mFileMockSetReadDeadline {
+	if mmSetReadDeadline.mock.inspectFuncSetReadDeadline != nil {
+		mmSetReadDeadline.mock.t.Fatalf("Inspect function is already set for FileMock.SetReadDeadline")
+	}
+
+	mmSetReadDeadline.mock.inspectFuncSetReadDeadline = f
+
+	return mmSetReadDeadline
+}
+
 // Return sets up results that will be returned by File.SetReadDeadline
 func (mmSetReadDeadline *mFileMockSetReadDeadline) Return(err error) *FileMock {
 	if mmSetReadDeadline.mock.funcSetReadDeadline != nil {
@@ -2401,15 +2612,19 @@ func (mmSetReadDeadline *FileMock) SetReadDeadline(t time.Time) (err error) {
 	mm_atomic.AddUint64(&mmSetReadDeadline.beforeSetReadDeadlineCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetReadDeadline.afterSetReadDeadlineCounter, 1)
 
-	params := &FileMockSetReadDeadlineParams{t}
+	if mmSetReadDeadline.inspectFuncSetReadDeadline != nil {
+		mmSetReadDeadline.inspectFuncSetReadDeadline(t)
+	}
+
+	mm_params := &FileMockSetReadDeadlineParams{t}
 
 	// Record call args
 	mmSetReadDeadline.SetReadDeadlineMock.mutex.Lock()
-	mmSetReadDeadline.SetReadDeadlineMock.callArgs = append(mmSetReadDeadline.SetReadDeadlineMock.callArgs, params)
+	mmSetReadDeadline.SetReadDeadlineMock.callArgs = append(mmSetReadDeadline.SetReadDeadlineMock.callArgs, mm_params)
 	mmSetReadDeadline.SetReadDeadlineMock.mutex.Unlock()
 
 	for _, e := range mmSetReadDeadline.SetReadDeadlineMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
@@ -2417,17 +2632,17 @@ func (mmSetReadDeadline *FileMock) SetReadDeadline(t time.Time) (err error) {
 
 	if mmSetReadDeadline.SetReadDeadlineMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmSetReadDeadline.SetReadDeadlineMock.defaultExpectation.Counter, 1)
-		want := mmSetReadDeadline.SetReadDeadlineMock.defaultExpectation.params
-		got := FileMockSetReadDeadlineParams{t}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmSetReadDeadline.t.Errorf("FileMock.SetReadDeadline got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmSetReadDeadline.SetReadDeadlineMock.defaultExpectation.params
+		mm_got := FileMockSetReadDeadlineParams{t}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetReadDeadline.t.Errorf("FileMock.SetReadDeadline got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmSetReadDeadline.SetReadDeadlineMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmSetReadDeadline.SetReadDeadlineMock.defaultExpectation.results
+		if mm_results == nil {
 			mmSetReadDeadline.t.Fatal("No results are set for the FileMock.SetReadDeadline")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmSetReadDeadline.funcSetReadDeadline != nil {
 		return mmSetReadDeadline.funcSetReadDeadline(t)
@@ -2548,6 +2763,17 @@ func (mmSetWriteDeadline *mFileMockSetWriteDeadline) Expect(t time.Time) *mFileM
 	return mmSetWriteDeadline
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.SetWriteDeadline
+func (mmSetWriteDeadline *mFileMockSetWriteDeadline) Inspect(f func(t time.Time)) *mFileMockSetWriteDeadline {
+	if mmSetWriteDeadline.mock.inspectFuncSetWriteDeadline != nil {
+		mmSetWriteDeadline.mock.t.Fatalf("Inspect function is already set for FileMock.SetWriteDeadline")
+	}
+
+	mmSetWriteDeadline.mock.inspectFuncSetWriteDeadline = f
+
+	return mmSetWriteDeadline
+}
+
 // Return sets up results that will be returned by File.SetWriteDeadline
 func (mmSetWriteDeadline *mFileMockSetWriteDeadline) Return(err error) *FileMock {
 	if mmSetWriteDeadline.mock.funcSetWriteDeadline != nil {
@@ -2601,15 +2827,19 @@ func (mmSetWriteDeadline *FileMock) SetWriteDeadline(t time.Time) (err error) {
 	mm_atomic.AddUint64(&mmSetWriteDeadline.beforeSetWriteDeadlineCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetWriteDeadline.afterSetWriteDeadlineCounter, 1)
 
-	params := &FileMockSetWriteDeadlineParams{t}
+	if mmSetWriteDeadline.inspectFuncSetWriteDeadline != nil {
+		mmSetWriteDeadline.inspectFuncSetWriteDeadline(t)
+	}
+
+	mm_params := &FileMockSetWriteDeadlineParams{t}
 
 	// Record call args
 	mmSetWriteDeadline.SetWriteDeadlineMock.mutex.Lock()
-	mmSetWriteDeadline.SetWriteDeadlineMock.callArgs = append(mmSetWriteDeadline.SetWriteDeadlineMock.callArgs, params)
+	mmSetWriteDeadline.SetWriteDeadlineMock.callArgs = append(mmSetWriteDeadline.SetWriteDeadlineMock.callArgs, mm_params)
 	mmSetWriteDeadline.SetWriteDeadlineMock.mutex.Unlock()
 
 	for _, e := range mmSetWriteDeadline.SetWriteDeadlineMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
@@ -2617,17 +2847,17 @@ func (mmSetWriteDeadline *FileMock) SetWriteDeadline(t time.Time) (err error) {
 
 	if mmSetWriteDeadline.SetWriteDeadlineMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmSetWriteDeadline.SetWriteDeadlineMock.defaultExpectation.Counter, 1)
-		want := mmSetWriteDeadline.SetWriteDeadlineMock.defaultExpectation.params
-		got := FileMockSetWriteDeadlineParams{t}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmSetWriteDeadline.t.Errorf("FileMock.SetWriteDeadline got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmSetWriteDeadline.SetWriteDeadlineMock.defaultExpectation.params
+		mm_got := FileMockSetWriteDeadlineParams{t}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetWriteDeadline.t.Errorf("FileMock.SetWriteDeadline got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmSetWriteDeadline.SetWriteDeadlineMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmSetWriteDeadline.SetWriteDeadlineMock.defaultExpectation.results
+		if mm_results == nil {
 			mmSetWriteDeadline.t.Fatal("No results are set for the FileMock.SetWriteDeadline")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmSetWriteDeadline.funcSetWriteDeadline != nil {
 		return mmSetWriteDeadline.funcSetWriteDeadline(t)
@@ -2734,6 +2964,17 @@ func (mmStat *mFileMockStat) Expect() *mFileMockStat {
 	return mmStat
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Stat
+func (mmStat *mFileMockStat) Inspect(f func()) *mFileMockStat {
+	if mmStat.mock.inspectFuncStat != nil {
+		mmStat.mock.t.Fatalf("Inspect function is already set for FileMock.Stat")
+	}
+
+	mmStat.mock.inspectFuncStat = f
+
+	return mmStat
+}
+
 // Return sets up results that will be returned by File.Stat
 func (mmStat *mFileMockStat) Return(f1 os.FileInfo, err error) *FileMock {
 	if mmStat.mock.funcStat != nil {
@@ -2766,14 +3007,18 @@ func (mmStat *FileMock) Stat() (f1 os.FileInfo, err error) {
 	mm_atomic.AddUint64(&mmStat.beforeStatCounter, 1)
 	defer mm_atomic.AddUint64(&mmStat.afterStatCounter, 1)
 
+	if mmStat.inspectFuncStat != nil {
+		mmStat.inspectFuncStat()
+	}
+
 	if mmStat.StatMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmStat.StatMock.defaultExpectation.Counter, 1)
 
-		results := mmStat.StatMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmStat.StatMock.defaultExpectation.results
+		if mm_results == nil {
 			mmStat.t.Fatal("No results are set for the FileMock.Stat")
 		}
-		return (*results).f1, (*results).err
+		return (*mm_results).f1, (*mm_results).err
 	}
 	if mmStat.funcStat != nil {
 		return mmStat.funcStat()
@@ -2862,6 +3107,17 @@ func (mmSync *mFileMockSync) Expect() *mFileMockSync {
 	return mmSync
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Sync
+func (mmSync *mFileMockSync) Inspect(f func()) *mFileMockSync {
+	if mmSync.mock.inspectFuncSync != nil {
+		mmSync.mock.t.Fatalf("Inspect function is already set for FileMock.Sync")
+	}
+
+	mmSync.mock.inspectFuncSync = f
+
+	return mmSync
+}
+
 // Return sets up results that will be returned by File.Sync
 func (mmSync *mFileMockSync) Return(err error) *FileMock {
 	if mmSync.mock.funcSync != nil {
@@ -2894,14 +3150,18 @@ func (mmSync *FileMock) Sync() (err error) {
 	mm_atomic.AddUint64(&mmSync.beforeSyncCounter, 1)
 	defer mm_atomic.AddUint64(&mmSync.afterSyncCounter, 1)
 
+	if mmSync.inspectFuncSync != nil {
+		mmSync.inspectFuncSync()
+	}
+
 	if mmSync.SyncMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmSync.SyncMock.defaultExpectation.Counter, 1)
 
-		results := mmSync.SyncMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmSync.SyncMock.defaultExpectation.results
+		if mm_results == nil {
 			mmSync.t.Fatal("No results are set for the FileMock.Sync")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmSync.funcSync != nil {
 		return mmSync.funcSync()
@@ -3005,6 +3265,17 @@ func (mmTruncate *mFileMockTruncate) Expect(size int64) *mFileMockTruncate {
 	return mmTruncate
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Truncate
+func (mmTruncate *mFileMockTruncate) Inspect(f func(size int64)) *mFileMockTruncate {
+	if mmTruncate.mock.inspectFuncTruncate != nil {
+		mmTruncate.mock.t.Fatalf("Inspect function is already set for FileMock.Truncate")
+	}
+
+	mmTruncate.mock.inspectFuncTruncate = f
+
+	return mmTruncate
+}
+
 // Return sets up results that will be returned by File.Truncate
 func (mmTruncate *mFileMockTruncate) Return(err error) *FileMock {
 	if mmTruncate.mock.funcTruncate != nil {
@@ -3058,15 +3329,19 @@ func (mmTruncate *FileMock) Truncate(size int64) (err error) {
 	mm_atomic.AddUint64(&mmTruncate.beforeTruncateCounter, 1)
 	defer mm_atomic.AddUint64(&mmTruncate.afterTruncateCounter, 1)
 
-	params := &FileMockTruncateParams{size}
+	if mmTruncate.inspectFuncTruncate != nil {
+		mmTruncate.inspectFuncTruncate(size)
+	}
+
+	mm_params := &FileMockTruncateParams{size}
 
 	// Record call args
 	mmTruncate.TruncateMock.mutex.Lock()
-	mmTruncate.TruncateMock.callArgs = append(mmTruncate.TruncateMock.callArgs, params)
+	mmTruncate.TruncateMock.callArgs = append(mmTruncate.TruncateMock.callArgs, mm_params)
 	mmTruncate.TruncateMock.mutex.Unlock()
 
 	for _, e := range mmTruncate.TruncateMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
@@ -3074,17 +3349,17 @@ func (mmTruncate *FileMock) Truncate(size int64) (err error) {
 
 	if mmTruncate.TruncateMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmTruncate.TruncateMock.defaultExpectation.Counter, 1)
-		want := mmTruncate.TruncateMock.defaultExpectation.params
-		got := FileMockTruncateParams{size}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmTruncate.t.Errorf("FileMock.Truncate got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmTruncate.TruncateMock.defaultExpectation.params
+		mm_got := FileMockTruncateParams{size}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmTruncate.t.Errorf("FileMock.Truncate got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmTruncate.TruncateMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmTruncate.TruncateMock.defaultExpectation.results
+		if mm_results == nil {
 			mmTruncate.t.Fatal("No results are set for the FileMock.Truncate")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmTruncate.funcTruncate != nil {
 		return mmTruncate.funcTruncate(size)
@@ -3206,6 +3481,17 @@ func (mmWrite *mFileMockWrite) Expect(b []byte) *mFileMockWrite {
 	return mmWrite
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.Write
+func (mmWrite *mFileMockWrite) Inspect(f func(b []byte)) *mFileMockWrite {
+	if mmWrite.mock.inspectFuncWrite != nil {
+		mmWrite.mock.t.Fatalf("Inspect function is already set for FileMock.Write")
+	}
+
+	mmWrite.mock.inspectFuncWrite = f
+
+	return mmWrite
+}
+
 // Return sets up results that will be returned by File.Write
 func (mmWrite *mFileMockWrite) Return(n int, err error) *FileMock {
 	if mmWrite.mock.funcWrite != nil {
@@ -3259,15 +3545,19 @@ func (mmWrite *FileMock) Write(b []byte) (n int, err error) {
 	mm_atomic.AddUint64(&mmWrite.beforeWriteCounter, 1)
 	defer mm_atomic.AddUint64(&mmWrite.afterWriteCounter, 1)
 
-	params := &FileMockWriteParams{b}
+	if mmWrite.inspectFuncWrite != nil {
+		mmWrite.inspectFuncWrite(b)
+	}
+
+	mm_params := &FileMockWriteParams{b}
 
 	// Record call args
 	mmWrite.WriteMock.mutex.Lock()
-	mmWrite.WriteMock.callArgs = append(mmWrite.WriteMock.callArgs, params)
+	mmWrite.WriteMock.callArgs = append(mmWrite.WriteMock.callArgs, mm_params)
 	mmWrite.WriteMock.mutex.Unlock()
 
 	for _, e := range mmWrite.WriteMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.n, e.results.err
 		}
@@ -3275,17 +3565,17 @@ func (mmWrite *FileMock) Write(b []byte) (n int, err error) {
 
 	if mmWrite.WriteMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmWrite.WriteMock.defaultExpectation.Counter, 1)
-		want := mmWrite.WriteMock.defaultExpectation.params
-		got := FileMockWriteParams{b}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmWrite.t.Errorf("FileMock.Write got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmWrite.WriteMock.defaultExpectation.params
+		mm_got := FileMockWriteParams{b}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmWrite.t.Errorf("FileMock.Write got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmWrite.WriteMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmWrite.WriteMock.defaultExpectation.results
+		if mm_results == nil {
 			mmWrite.t.Fatal("No results are set for the FileMock.Write")
 		}
-		return (*results).n, (*results).err
+		return (*mm_results).n, (*mm_results).err
 	}
 	if mmWrite.funcWrite != nil {
 		return mmWrite.funcWrite(b)
@@ -3408,6 +3698,17 @@ func (mmWriteAt *mFileMockWriteAt) Expect(b []byte, off int64) *mFileMockWriteAt
 	return mmWriteAt
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.WriteAt
+func (mmWriteAt *mFileMockWriteAt) Inspect(f func(b []byte, off int64)) *mFileMockWriteAt {
+	if mmWriteAt.mock.inspectFuncWriteAt != nil {
+		mmWriteAt.mock.t.Fatalf("Inspect function is already set for FileMock.WriteAt")
+	}
+
+	mmWriteAt.mock.inspectFuncWriteAt = f
+
+	return mmWriteAt
+}
+
 // Return sets up results that will be returned by File.WriteAt
 func (mmWriteAt *mFileMockWriteAt) Return(n int, err error) *FileMock {
 	if mmWriteAt.mock.funcWriteAt != nil {
@@ -3461,15 +3762,19 @@ func (mmWriteAt *FileMock) WriteAt(b []byte, off int64) (n int, err error) {
 	mm_atomic.AddUint64(&mmWriteAt.beforeWriteAtCounter, 1)
 	defer mm_atomic.AddUint64(&mmWriteAt.afterWriteAtCounter, 1)
 
-	params := &FileMockWriteAtParams{b, off}
+	if mmWriteAt.inspectFuncWriteAt != nil {
+		mmWriteAt.inspectFuncWriteAt(b, off)
+	}
+
+	mm_params := &FileMockWriteAtParams{b, off}
 
 	// Record call args
 	mmWriteAt.WriteAtMock.mutex.Lock()
-	mmWriteAt.WriteAtMock.callArgs = append(mmWriteAt.WriteAtMock.callArgs, params)
+	mmWriteAt.WriteAtMock.callArgs = append(mmWriteAt.WriteAtMock.callArgs, mm_params)
 	mmWriteAt.WriteAtMock.mutex.Unlock()
 
 	for _, e := range mmWriteAt.WriteAtMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.n, e.results.err
 		}
@@ -3477,17 +3782,17 @@ func (mmWriteAt *FileMock) WriteAt(b []byte, off int64) (n int, err error) {
 
 	if mmWriteAt.WriteAtMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmWriteAt.WriteAtMock.defaultExpectation.Counter, 1)
-		want := mmWriteAt.WriteAtMock.defaultExpectation.params
-		got := FileMockWriteAtParams{b, off}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmWriteAt.t.Errorf("FileMock.WriteAt got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmWriteAt.WriteAtMock.defaultExpectation.params
+		mm_got := FileMockWriteAtParams{b, off}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmWriteAt.t.Errorf("FileMock.WriteAt got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmWriteAt.WriteAtMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmWriteAt.WriteAtMock.defaultExpectation.results
+		if mm_results == nil {
 			mmWriteAt.t.Fatal("No results are set for the FileMock.WriteAt")
 		}
-		return (*results).n, (*results).err
+		return (*mm_results).n, (*mm_results).err
 	}
 	if mmWriteAt.funcWriteAt != nil {
 		return mmWriteAt.funcWriteAt(b, off)
@@ -3609,6 +3914,17 @@ func (mmWriteString *mFileMockWriteString) Expect(s string) *mFileMockWriteStrin
 	return mmWriteString
 }
 
+// Inspect accepts an inspector function that has same arguments as the File.WriteString
+func (mmWriteString *mFileMockWriteString) Inspect(f func(s string)) *mFileMockWriteString {
+	if mmWriteString.mock.inspectFuncWriteString != nil {
+		mmWriteString.mock.t.Fatalf("Inspect function is already set for FileMock.WriteString")
+	}
+
+	mmWriteString.mock.inspectFuncWriteString = f
+
+	return mmWriteString
+}
+
 // Return sets up results that will be returned by File.WriteString
 func (mmWriteString *mFileMockWriteString) Return(n int, err error) *FileMock {
 	if mmWriteString.mock.funcWriteString != nil {
@@ -3662,15 +3978,19 @@ func (mmWriteString *FileMock) WriteString(s string) (n int, err error) {
 	mm_atomic.AddUint64(&mmWriteString.beforeWriteStringCounter, 1)
 	defer mm_atomic.AddUint64(&mmWriteString.afterWriteStringCounter, 1)
 
-	params := &FileMockWriteStringParams{s}
+	if mmWriteString.inspectFuncWriteString != nil {
+		mmWriteString.inspectFuncWriteString(s)
+	}
+
+	mm_params := &FileMockWriteStringParams{s}
 
 	// Record call args
 	mmWriteString.WriteStringMock.mutex.Lock()
-	mmWriteString.WriteStringMock.callArgs = append(mmWriteString.WriteStringMock.callArgs, params)
+	mmWriteString.WriteStringMock.callArgs = append(mmWriteString.WriteStringMock.callArgs, mm_params)
 	mmWriteString.WriteStringMock.mutex.Unlock()
 
 	for _, e := range mmWriteString.WriteStringMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.n, e.results.err
 		}
@@ -3678,17 +3998,17 @@ func (mmWriteString *FileMock) WriteString(s string) (n int, err error) {
 
 	if mmWriteString.WriteStringMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmWriteString.WriteStringMock.defaultExpectation.Counter, 1)
-		want := mmWriteString.WriteStringMock.defaultExpectation.params
-		got := FileMockWriteStringParams{s}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmWriteString.t.Errorf("FileMock.WriteString got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmWriteString.WriteStringMock.defaultExpectation.params
+		mm_got := FileMockWriteStringParams{s}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmWriteString.t.Errorf("FileMock.WriteString got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmWriteString.WriteStringMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmWriteString.WriteStringMock.defaultExpectation.results
+		if mm_results == nil {
 			mmWriteString.t.Fatal("No results are set for the FileMock.WriteString")
 		}
-		return (*results).n, (*results).err
+		return (*mm_results).n, (*mm_results).err
 	}
 	if mmWriteString.funcWriteString != nil {
 		return mmWriteString.funcWriteString(s)

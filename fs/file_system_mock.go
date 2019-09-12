@@ -8,7 +8,7 @@ import (
 	mm_atomic "sync/atomic"
 	mm_time "time"
 
-	"github.com/gojuno/minimock"
+	"github.com/gojuno/minimock/v3"
 )
 
 // FileSystemMock implements FileSystem
@@ -16,46 +16,55 @@ type FileSystemMock struct {
 	t minimock.Tester
 
 	funcCreate          func(name string) (f1 File, err error)
+	inspectFuncCreate   func(name string)
 	afterCreateCounter  uint64
 	beforeCreateCounter uint64
 	CreateMock          mFileSystemMockCreate
 
 	funcMkdir          func(name string, perm os.FileMode) (err error)
+	inspectFuncMkdir   func(name string, perm os.FileMode)
 	afterMkdirCounter  uint64
 	beforeMkdirCounter uint64
 	MkdirMock          mFileSystemMockMkdir
 
 	funcMkdirAll          func(path string, perm os.FileMode) (err error)
+	inspectFuncMkdirAll   func(path string, perm os.FileMode)
 	afterMkdirAllCounter  uint64
 	beforeMkdirAllCounter uint64
 	MkdirAllMock          mFileSystemMockMkdirAll
 
 	funcOpen          func(name string) (f1 File, err error)
+	inspectFuncOpen   func(name string)
 	afterOpenCounter  uint64
 	beforeOpenCounter uint64
 	OpenMock          mFileSystemMockOpen
 
 	funcOpenFile          func(name string, flag int, perm os.FileMode) (f1 File, err error)
+	inspectFuncOpenFile   func(name string, flag int, perm os.FileMode)
 	afterOpenFileCounter  uint64
 	beforeOpenFileCounter uint64
 	OpenFileMock          mFileSystemMockOpenFile
 
 	funcRemove          func(name string) (err error)
+	inspectFuncRemove   func(name string)
 	afterRemoveCounter  uint64
 	beforeRemoveCounter uint64
 	RemoveMock          mFileSystemMockRemove
 
 	funcRemoveAll          func(path string) (err error)
+	inspectFuncRemoveAll   func(path string)
 	afterRemoveAllCounter  uint64
 	beforeRemoveAllCounter uint64
 	RemoveAllMock          mFileSystemMockRemoveAll
 
 	funcRename          func(old string, new string) (err error)
+	inspectFuncRename   func(old string, new string)
 	afterRenameCounter  uint64
 	beforeRenameCounter uint64
 	RenameMock          mFileSystemMockRename
 
 	funcStat          func(name string) (f1 os.FileInfo, err error)
+	inspectFuncStat   func(name string)
 	afterStatCounter  uint64
 	beforeStatCounter uint64
 	StatMock          mFileSystemMockStat
@@ -146,6 +155,17 @@ func (mmCreate *mFileSystemMockCreate) Expect(name string) *mFileSystemMockCreat
 	return mmCreate
 }
 
+// Inspect accepts an inspector function that has same arguments as the FileSystem.Create
+func (mmCreate *mFileSystemMockCreate) Inspect(f func(name string)) *mFileSystemMockCreate {
+	if mmCreate.mock.inspectFuncCreate != nil {
+		mmCreate.mock.t.Fatalf("Inspect function is already set for FileSystemMock.Create")
+	}
+
+	mmCreate.mock.inspectFuncCreate = f
+
+	return mmCreate
+}
+
 // Return sets up results that will be returned by FileSystem.Create
 func (mmCreate *mFileSystemMockCreate) Return(f1 File, err error) *FileSystemMock {
 	if mmCreate.mock.funcCreate != nil {
@@ -199,15 +219,19 @@ func (mmCreate *FileSystemMock) Create(name string) (f1 File, err error) {
 	mm_atomic.AddUint64(&mmCreate.beforeCreateCounter, 1)
 	defer mm_atomic.AddUint64(&mmCreate.afterCreateCounter, 1)
 
-	params := &FileSystemMockCreateParams{name}
+	if mmCreate.inspectFuncCreate != nil {
+		mmCreate.inspectFuncCreate(name)
+	}
+
+	mm_params := &FileSystemMockCreateParams{name}
 
 	// Record call args
 	mmCreate.CreateMock.mutex.Lock()
-	mmCreate.CreateMock.callArgs = append(mmCreate.CreateMock.callArgs, params)
+	mmCreate.CreateMock.callArgs = append(mmCreate.CreateMock.callArgs, mm_params)
 	mmCreate.CreateMock.mutex.Unlock()
 
 	for _, e := range mmCreate.CreateMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.f1, e.results.err
 		}
@@ -215,17 +239,17 @@ func (mmCreate *FileSystemMock) Create(name string) (f1 File, err error) {
 
 	if mmCreate.CreateMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmCreate.CreateMock.defaultExpectation.Counter, 1)
-		want := mmCreate.CreateMock.defaultExpectation.params
-		got := FileSystemMockCreateParams{name}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmCreate.t.Errorf("FileSystemMock.Create got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmCreate.CreateMock.defaultExpectation.params
+		mm_got := FileSystemMockCreateParams{name}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCreate.t.Errorf("FileSystemMock.Create got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmCreate.CreateMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmCreate.CreateMock.defaultExpectation.results
+		if mm_results == nil {
 			mmCreate.t.Fatal("No results are set for the FileSystemMock.Create")
 		}
-		return (*results).f1, (*results).err
+		return (*mm_results).f1, (*mm_results).err
 	}
 	if mmCreate.funcCreate != nil {
 		return mmCreate.funcCreate(name)
@@ -347,6 +371,17 @@ func (mmMkdir *mFileSystemMockMkdir) Expect(name string, perm os.FileMode) *mFil
 	return mmMkdir
 }
 
+// Inspect accepts an inspector function that has same arguments as the FileSystem.Mkdir
+func (mmMkdir *mFileSystemMockMkdir) Inspect(f func(name string, perm os.FileMode)) *mFileSystemMockMkdir {
+	if mmMkdir.mock.inspectFuncMkdir != nil {
+		mmMkdir.mock.t.Fatalf("Inspect function is already set for FileSystemMock.Mkdir")
+	}
+
+	mmMkdir.mock.inspectFuncMkdir = f
+
+	return mmMkdir
+}
+
 // Return sets up results that will be returned by FileSystem.Mkdir
 func (mmMkdir *mFileSystemMockMkdir) Return(err error) *FileSystemMock {
 	if mmMkdir.mock.funcMkdir != nil {
@@ -400,15 +435,19 @@ func (mmMkdir *FileSystemMock) Mkdir(name string, perm os.FileMode) (err error) 
 	mm_atomic.AddUint64(&mmMkdir.beforeMkdirCounter, 1)
 	defer mm_atomic.AddUint64(&mmMkdir.afterMkdirCounter, 1)
 
-	params := &FileSystemMockMkdirParams{name, perm}
+	if mmMkdir.inspectFuncMkdir != nil {
+		mmMkdir.inspectFuncMkdir(name, perm)
+	}
+
+	mm_params := &FileSystemMockMkdirParams{name, perm}
 
 	// Record call args
 	mmMkdir.MkdirMock.mutex.Lock()
-	mmMkdir.MkdirMock.callArgs = append(mmMkdir.MkdirMock.callArgs, params)
+	mmMkdir.MkdirMock.callArgs = append(mmMkdir.MkdirMock.callArgs, mm_params)
 	mmMkdir.MkdirMock.mutex.Unlock()
 
 	for _, e := range mmMkdir.MkdirMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
@@ -416,17 +455,17 @@ func (mmMkdir *FileSystemMock) Mkdir(name string, perm os.FileMode) (err error) 
 
 	if mmMkdir.MkdirMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmMkdir.MkdirMock.defaultExpectation.Counter, 1)
-		want := mmMkdir.MkdirMock.defaultExpectation.params
-		got := FileSystemMockMkdirParams{name, perm}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmMkdir.t.Errorf("FileSystemMock.Mkdir got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmMkdir.MkdirMock.defaultExpectation.params
+		mm_got := FileSystemMockMkdirParams{name, perm}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmMkdir.t.Errorf("FileSystemMock.Mkdir got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmMkdir.MkdirMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmMkdir.MkdirMock.defaultExpectation.results
+		if mm_results == nil {
 			mmMkdir.t.Fatal("No results are set for the FileSystemMock.Mkdir")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmMkdir.funcMkdir != nil {
 		return mmMkdir.funcMkdir(name, perm)
@@ -548,6 +587,17 @@ func (mmMkdirAll *mFileSystemMockMkdirAll) Expect(path string, perm os.FileMode)
 	return mmMkdirAll
 }
 
+// Inspect accepts an inspector function that has same arguments as the FileSystem.MkdirAll
+func (mmMkdirAll *mFileSystemMockMkdirAll) Inspect(f func(path string, perm os.FileMode)) *mFileSystemMockMkdirAll {
+	if mmMkdirAll.mock.inspectFuncMkdirAll != nil {
+		mmMkdirAll.mock.t.Fatalf("Inspect function is already set for FileSystemMock.MkdirAll")
+	}
+
+	mmMkdirAll.mock.inspectFuncMkdirAll = f
+
+	return mmMkdirAll
+}
+
 // Return sets up results that will be returned by FileSystem.MkdirAll
 func (mmMkdirAll *mFileSystemMockMkdirAll) Return(err error) *FileSystemMock {
 	if mmMkdirAll.mock.funcMkdirAll != nil {
@@ -601,15 +651,19 @@ func (mmMkdirAll *FileSystemMock) MkdirAll(path string, perm os.FileMode) (err e
 	mm_atomic.AddUint64(&mmMkdirAll.beforeMkdirAllCounter, 1)
 	defer mm_atomic.AddUint64(&mmMkdirAll.afterMkdirAllCounter, 1)
 
-	params := &FileSystemMockMkdirAllParams{path, perm}
+	if mmMkdirAll.inspectFuncMkdirAll != nil {
+		mmMkdirAll.inspectFuncMkdirAll(path, perm)
+	}
+
+	mm_params := &FileSystemMockMkdirAllParams{path, perm}
 
 	// Record call args
 	mmMkdirAll.MkdirAllMock.mutex.Lock()
-	mmMkdirAll.MkdirAllMock.callArgs = append(mmMkdirAll.MkdirAllMock.callArgs, params)
+	mmMkdirAll.MkdirAllMock.callArgs = append(mmMkdirAll.MkdirAllMock.callArgs, mm_params)
 	mmMkdirAll.MkdirAllMock.mutex.Unlock()
 
 	for _, e := range mmMkdirAll.MkdirAllMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
@@ -617,17 +671,17 @@ func (mmMkdirAll *FileSystemMock) MkdirAll(path string, perm os.FileMode) (err e
 
 	if mmMkdirAll.MkdirAllMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmMkdirAll.MkdirAllMock.defaultExpectation.Counter, 1)
-		want := mmMkdirAll.MkdirAllMock.defaultExpectation.params
-		got := FileSystemMockMkdirAllParams{path, perm}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmMkdirAll.t.Errorf("FileSystemMock.MkdirAll got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmMkdirAll.MkdirAllMock.defaultExpectation.params
+		mm_got := FileSystemMockMkdirAllParams{path, perm}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmMkdirAll.t.Errorf("FileSystemMock.MkdirAll got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmMkdirAll.MkdirAllMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmMkdirAll.MkdirAllMock.defaultExpectation.results
+		if mm_results == nil {
 			mmMkdirAll.t.Fatal("No results are set for the FileSystemMock.MkdirAll")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmMkdirAll.funcMkdirAll != nil {
 		return mmMkdirAll.funcMkdirAll(path, perm)
@@ -749,6 +803,17 @@ func (mmOpen *mFileSystemMockOpen) Expect(name string) *mFileSystemMockOpen {
 	return mmOpen
 }
 
+// Inspect accepts an inspector function that has same arguments as the FileSystem.Open
+func (mmOpen *mFileSystemMockOpen) Inspect(f func(name string)) *mFileSystemMockOpen {
+	if mmOpen.mock.inspectFuncOpen != nil {
+		mmOpen.mock.t.Fatalf("Inspect function is already set for FileSystemMock.Open")
+	}
+
+	mmOpen.mock.inspectFuncOpen = f
+
+	return mmOpen
+}
+
 // Return sets up results that will be returned by FileSystem.Open
 func (mmOpen *mFileSystemMockOpen) Return(f1 File, err error) *FileSystemMock {
 	if mmOpen.mock.funcOpen != nil {
@@ -802,15 +867,19 @@ func (mmOpen *FileSystemMock) Open(name string) (f1 File, err error) {
 	mm_atomic.AddUint64(&mmOpen.beforeOpenCounter, 1)
 	defer mm_atomic.AddUint64(&mmOpen.afterOpenCounter, 1)
 
-	params := &FileSystemMockOpenParams{name}
+	if mmOpen.inspectFuncOpen != nil {
+		mmOpen.inspectFuncOpen(name)
+	}
+
+	mm_params := &FileSystemMockOpenParams{name}
 
 	// Record call args
 	mmOpen.OpenMock.mutex.Lock()
-	mmOpen.OpenMock.callArgs = append(mmOpen.OpenMock.callArgs, params)
+	mmOpen.OpenMock.callArgs = append(mmOpen.OpenMock.callArgs, mm_params)
 	mmOpen.OpenMock.mutex.Unlock()
 
 	for _, e := range mmOpen.OpenMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.f1, e.results.err
 		}
@@ -818,17 +887,17 @@ func (mmOpen *FileSystemMock) Open(name string) (f1 File, err error) {
 
 	if mmOpen.OpenMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmOpen.OpenMock.defaultExpectation.Counter, 1)
-		want := mmOpen.OpenMock.defaultExpectation.params
-		got := FileSystemMockOpenParams{name}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmOpen.t.Errorf("FileSystemMock.Open got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmOpen.OpenMock.defaultExpectation.params
+		mm_got := FileSystemMockOpenParams{name}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmOpen.t.Errorf("FileSystemMock.Open got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmOpen.OpenMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmOpen.OpenMock.defaultExpectation.results
+		if mm_results == nil {
 			mmOpen.t.Fatal("No results are set for the FileSystemMock.Open")
 		}
-		return (*results).f1, (*results).err
+		return (*mm_results).f1, (*mm_results).err
 	}
 	if mmOpen.funcOpen != nil {
 		return mmOpen.funcOpen(name)
@@ -952,6 +1021,17 @@ func (mmOpenFile *mFileSystemMockOpenFile) Expect(name string, flag int, perm os
 	return mmOpenFile
 }
 
+// Inspect accepts an inspector function that has same arguments as the FileSystem.OpenFile
+func (mmOpenFile *mFileSystemMockOpenFile) Inspect(f func(name string, flag int, perm os.FileMode)) *mFileSystemMockOpenFile {
+	if mmOpenFile.mock.inspectFuncOpenFile != nil {
+		mmOpenFile.mock.t.Fatalf("Inspect function is already set for FileSystemMock.OpenFile")
+	}
+
+	mmOpenFile.mock.inspectFuncOpenFile = f
+
+	return mmOpenFile
+}
+
 // Return sets up results that will be returned by FileSystem.OpenFile
 func (mmOpenFile *mFileSystemMockOpenFile) Return(f1 File, err error) *FileSystemMock {
 	if mmOpenFile.mock.funcOpenFile != nil {
@@ -1005,15 +1085,19 @@ func (mmOpenFile *FileSystemMock) OpenFile(name string, flag int, perm os.FileMo
 	mm_atomic.AddUint64(&mmOpenFile.beforeOpenFileCounter, 1)
 	defer mm_atomic.AddUint64(&mmOpenFile.afterOpenFileCounter, 1)
 
-	params := &FileSystemMockOpenFileParams{name, flag, perm}
+	if mmOpenFile.inspectFuncOpenFile != nil {
+		mmOpenFile.inspectFuncOpenFile(name, flag, perm)
+	}
+
+	mm_params := &FileSystemMockOpenFileParams{name, flag, perm}
 
 	// Record call args
 	mmOpenFile.OpenFileMock.mutex.Lock()
-	mmOpenFile.OpenFileMock.callArgs = append(mmOpenFile.OpenFileMock.callArgs, params)
+	mmOpenFile.OpenFileMock.callArgs = append(mmOpenFile.OpenFileMock.callArgs, mm_params)
 	mmOpenFile.OpenFileMock.mutex.Unlock()
 
 	for _, e := range mmOpenFile.OpenFileMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.f1, e.results.err
 		}
@@ -1021,17 +1105,17 @@ func (mmOpenFile *FileSystemMock) OpenFile(name string, flag int, perm os.FileMo
 
 	if mmOpenFile.OpenFileMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmOpenFile.OpenFileMock.defaultExpectation.Counter, 1)
-		want := mmOpenFile.OpenFileMock.defaultExpectation.params
-		got := FileSystemMockOpenFileParams{name, flag, perm}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmOpenFile.t.Errorf("FileSystemMock.OpenFile got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmOpenFile.OpenFileMock.defaultExpectation.params
+		mm_got := FileSystemMockOpenFileParams{name, flag, perm}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmOpenFile.t.Errorf("FileSystemMock.OpenFile got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmOpenFile.OpenFileMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmOpenFile.OpenFileMock.defaultExpectation.results
+		if mm_results == nil {
 			mmOpenFile.t.Fatal("No results are set for the FileSystemMock.OpenFile")
 		}
-		return (*results).f1, (*results).err
+		return (*mm_results).f1, (*mm_results).err
 	}
 	if mmOpenFile.funcOpenFile != nil {
 		return mmOpenFile.funcOpenFile(name, flag, perm)
@@ -1152,6 +1236,17 @@ func (mmRemove *mFileSystemMockRemove) Expect(name string) *mFileSystemMockRemov
 	return mmRemove
 }
 
+// Inspect accepts an inspector function that has same arguments as the FileSystem.Remove
+func (mmRemove *mFileSystemMockRemove) Inspect(f func(name string)) *mFileSystemMockRemove {
+	if mmRemove.mock.inspectFuncRemove != nil {
+		mmRemove.mock.t.Fatalf("Inspect function is already set for FileSystemMock.Remove")
+	}
+
+	mmRemove.mock.inspectFuncRemove = f
+
+	return mmRemove
+}
+
 // Return sets up results that will be returned by FileSystem.Remove
 func (mmRemove *mFileSystemMockRemove) Return(err error) *FileSystemMock {
 	if mmRemove.mock.funcRemove != nil {
@@ -1205,15 +1300,19 @@ func (mmRemove *FileSystemMock) Remove(name string) (err error) {
 	mm_atomic.AddUint64(&mmRemove.beforeRemoveCounter, 1)
 	defer mm_atomic.AddUint64(&mmRemove.afterRemoveCounter, 1)
 
-	params := &FileSystemMockRemoveParams{name}
+	if mmRemove.inspectFuncRemove != nil {
+		mmRemove.inspectFuncRemove(name)
+	}
+
+	mm_params := &FileSystemMockRemoveParams{name}
 
 	// Record call args
 	mmRemove.RemoveMock.mutex.Lock()
-	mmRemove.RemoveMock.callArgs = append(mmRemove.RemoveMock.callArgs, params)
+	mmRemove.RemoveMock.callArgs = append(mmRemove.RemoveMock.callArgs, mm_params)
 	mmRemove.RemoveMock.mutex.Unlock()
 
 	for _, e := range mmRemove.RemoveMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
@@ -1221,17 +1320,17 @@ func (mmRemove *FileSystemMock) Remove(name string) (err error) {
 
 	if mmRemove.RemoveMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmRemove.RemoveMock.defaultExpectation.Counter, 1)
-		want := mmRemove.RemoveMock.defaultExpectation.params
-		got := FileSystemMockRemoveParams{name}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmRemove.t.Errorf("FileSystemMock.Remove got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmRemove.RemoveMock.defaultExpectation.params
+		mm_got := FileSystemMockRemoveParams{name}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmRemove.t.Errorf("FileSystemMock.Remove got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmRemove.RemoveMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmRemove.RemoveMock.defaultExpectation.results
+		if mm_results == nil {
 			mmRemove.t.Fatal("No results are set for the FileSystemMock.Remove")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmRemove.funcRemove != nil {
 		return mmRemove.funcRemove(name)
@@ -1352,6 +1451,17 @@ func (mmRemoveAll *mFileSystemMockRemoveAll) Expect(path string) *mFileSystemMoc
 	return mmRemoveAll
 }
 
+// Inspect accepts an inspector function that has same arguments as the FileSystem.RemoveAll
+func (mmRemoveAll *mFileSystemMockRemoveAll) Inspect(f func(path string)) *mFileSystemMockRemoveAll {
+	if mmRemoveAll.mock.inspectFuncRemoveAll != nil {
+		mmRemoveAll.mock.t.Fatalf("Inspect function is already set for FileSystemMock.RemoveAll")
+	}
+
+	mmRemoveAll.mock.inspectFuncRemoveAll = f
+
+	return mmRemoveAll
+}
+
 // Return sets up results that will be returned by FileSystem.RemoveAll
 func (mmRemoveAll *mFileSystemMockRemoveAll) Return(err error) *FileSystemMock {
 	if mmRemoveAll.mock.funcRemoveAll != nil {
@@ -1405,15 +1515,19 @@ func (mmRemoveAll *FileSystemMock) RemoveAll(path string) (err error) {
 	mm_atomic.AddUint64(&mmRemoveAll.beforeRemoveAllCounter, 1)
 	defer mm_atomic.AddUint64(&mmRemoveAll.afterRemoveAllCounter, 1)
 
-	params := &FileSystemMockRemoveAllParams{path}
+	if mmRemoveAll.inspectFuncRemoveAll != nil {
+		mmRemoveAll.inspectFuncRemoveAll(path)
+	}
+
+	mm_params := &FileSystemMockRemoveAllParams{path}
 
 	// Record call args
 	mmRemoveAll.RemoveAllMock.mutex.Lock()
-	mmRemoveAll.RemoveAllMock.callArgs = append(mmRemoveAll.RemoveAllMock.callArgs, params)
+	mmRemoveAll.RemoveAllMock.callArgs = append(mmRemoveAll.RemoveAllMock.callArgs, mm_params)
 	mmRemoveAll.RemoveAllMock.mutex.Unlock()
 
 	for _, e := range mmRemoveAll.RemoveAllMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
@@ -1421,17 +1535,17 @@ func (mmRemoveAll *FileSystemMock) RemoveAll(path string) (err error) {
 
 	if mmRemoveAll.RemoveAllMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmRemoveAll.RemoveAllMock.defaultExpectation.Counter, 1)
-		want := mmRemoveAll.RemoveAllMock.defaultExpectation.params
-		got := FileSystemMockRemoveAllParams{path}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmRemoveAll.t.Errorf("FileSystemMock.RemoveAll got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmRemoveAll.RemoveAllMock.defaultExpectation.params
+		mm_got := FileSystemMockRemoveAllParams{path}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmRemoveAll.t.Errorf("FileSystemMock.RemoveAll got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmRemoveAll.RemoveAllMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmRemoveAll.RemoveAllMock.defaultExpectation.results
+		if mm_results == nil {
 			mmRemoveAll.t.Fatal("No results are set for the FileSystemMock.RemoveAll")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmRemoveAll.funcRemoveAll != nil {
 		return mmRemoveAll.funcRemoveAll(path)
@@ -1553,6 +1667,17 @@ func (mmRename *mFileSystemMockRename) Expect(old string, new string) *mFileSyst
 	return mmRename
 }
 
+// Inspect accepts an inspector function that has same arguments as the FileSystem.Rename
+func (mmRename *mFileSystemMockRename) Inspect(f func(old string, new string)) *mFileSystemMockRename {
+	if mmRename.mock.inspectFuncRename != nil {
+		mmRename.mock.t.Fatalf("Inspect function is already set for FileSystemMock.Rename")
+	}
+
+	mmRename.mock.inspectFuncRename = f
+
+	return mmRename
+}
+
 // Return sets up results that will be returned by FileSystem.Rename
 func (mmRename *mFileSystemMockRename) Return(err error) *FileSystemMock {
 	if mmRename.mock.funcRename != nil {
@@ -1606,15 +1731,19 @@ func (mmRename *FileSystemMock) Rename(old string, new string) (err error) {
 	mm_atomic.AddUint64(&mmRename.beforeRenameCounter, 1)
 	defer mm_atomic.AddUint64(&mmRename.afterRenameCounter, 1)
 
-	params := &FileSystemMockRenameParams{old, new}
+	if mmRename.inspectFuncRename != nil {
+		mmRename.inspectFuncRename(old, new)
+	}
+
+	mm_params := &FileSystemMockRenameParams{old, new}
 
 	// Record call args
 	mmRename.RenameMock.mutex.Lock()
-	mmRename.RenameMock.callArgs = append(mmRename.RenameMock.callArgs, params)
+	mmRename.RenameMock.callArgs = append(mmRename.RenameMock.callArgs, mm_params)
 	mmRename.RenameMock.mutex.Unlock()
 
 	for _, e := range mmRename.RenameMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
@@ -1622,17 +1751,17 @@ func (mmRename *FileSystemMock) Rename(old string, new string) (err error) {
 
 	if mmRename.RenameMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmRename.RenameMock.defaultExpectation.Counter, 1)
-		want := mmRename.RenameMock.defaultExpectation.params
-		got := FileSystemMockRenameParams{old, new}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmRename.t.Errorf("FileSystemMock.Rename got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmRename.RenameMock.defaultExpectation.params
+		mm_got := FileSystemMockRenameParams{old, new}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmRename.t.Errorf("FileSystemMock.Rename got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmRename.RenameMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmRename.RenameMock.defaultExpectation.results
+		if mm_results == nil {
 			mmRename.t.Fatal("No results are set for the FileSystemMock.Rename")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmRename.funcRename != nil {
 		return mmRename.funcRename(old, new)
@@ -1754,6 +1883,17 @@ func (mmStat *mFileSystemMockStat) Expect(name string) *mFileSystemMockStat {
 	return mmStat
 }
 
+// Inspect accepts an inspector function that has same arguments as the FileSystem.Stat
+func (mmStat *mFileSystemMockStat) Inspect(f func(name string)) *mFileSystemMockStat {
+	if mmStat.mock.inspectFuncStat != nil {
+		mmStat.mock.t.Fatalf("Inspect function is already set for FileSystemMock.Stat")
+	}
+
+	mmStat.mock.inspectFuncStat = f
+
+	return mmStat
+}
+
 // Return sets up results that will be returned by FileSystem.Stat
 func (mmStat *mFileSystemMockStat) Return(f1 os.FileInfo, err error) *FileSystemMock {
 	if mmStat.mock.funcStat != nil {
@@ -1807,15 +1947,19 @@ func (mmStat *FileSystemMock) Stat(name string) (f1 os.FileInfo, err error) {
 	mm_atomic.AddUint64(&mmStat.beforeStatCounter, 1)
 	defer mm_atomic.AddUint64(&mmStat.afterStatCounter, 1)
 
-	params := &FileSystemMockStatParams{name}
+	if mmStat.inspectFuncStat != nil {
+		mmStat.inspectFuncStat(name)
+	}
+
+	mm_params := &FileSystemMockStatParams{name}
 
 	// Record call args
 	mmStat.StatMock.mutex.Lock()
-	mmStat.StatMock.callArgs = append(mmStat.StatMock.callArgs, params)
+	mmStat.StatMock.callArgs = append(mmStat.StatMock.callArgs, mm_params)
 	mmStat.StatMock.mutex.Unlock()
 
 	for _, e := range mmStat.StatMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.f1, e.results.err
 		}
@@ -1823,17 +1967,17 @@ func (mmStat *FileSystemMock) Stat(name string) (f1 os.FileInfo, err error) {
 
 	if mmStat.StatMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmStat.StatMock.defaultExpectation.Counter, 1)
-		want := mmStat.StatMock.defaultExpectation.params
-		got := FileSystemMockStatParams{name}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmStat.t.Errorf("FileSystemMock.Stat got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmStat.StatMock.defaultExpectation.params
+		mm_got := FileSystemMockStatParams{name}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmStat.t.Errorf("FileSystemMock.Stat got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmStat.StatMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmStat.StatMock.defaultExpectation.results
+		if mm_results == nil {
 			mmStat.t.Fatal("No results are set for the FileSystemMock.Stat")
 		}
-		return (*results).f1, (*results).err
+		return (*mm_results).f1, (*mm_results).err
 	}
 	if mmStat.funcStat != nil {
 		return mmStat.funcStat(name)
