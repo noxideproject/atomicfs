@@ -8,7 +8,7 @@ import (
 	"syscall"
 	mm_time "time"
 
-	"github.com/gojuno/minimock"
+	"github.com/gojuno/minimock/v3"
 )
 
 // SyscallMock implements Syscall
@@ -16,6 +16,7 @@ type SyscallMock struct {
 	t minimock.Tester
 
 	funcStat          func(s1 string, sp1 *syscall.Stat_t) (err error)
+	inspectFuncStat   func(s1 string, sp1 *syscall.Stat_t)
 	afterStatCounter  uint64
 	beforeStatCounter uint64
 	StatMock          mSyscallMockStat
@@ -82,6 +83,17 @@ func (mmStat *mSyscallMockStat) Expect(s1 string, sp1 *syscall.Stat_t) *mSyscall
 	return mmStat
 }
 
+// Inspect accepts an inspector function that has same arguments as the Syscall.Stat
+func (mmStat *mSyscallMockStat) Inspect(f func(s1 string, sp1 *syscall.Stat_t)) *mSyscallMockStat {
+	if mmStat.mock.inspectFuncStat != nil {
+		mmStat.mock.t.Fatalf("Inspect function is already set for SyscallMock.Stat")
+	}
+
+	mmStat.mock.inspectFuncStat = f
+
+	return mmStat
+}
+
 // Return sets up results that will be returned by Syscall.Stat
 func (mmStat *mSyscallMockStat) Return(err error) *SyscallMock {
 	if mmStat.mock.funcStat != nil {
@@ -135,15 +147,19 @@ func (mmStat *SyscallMock) Stat(s1 string, sp1 *syscall.Stat_t) (err error) {
 	mm_atomic.AddUint64(&mmStat.beforeStatCounter, 1)
 	defer mm_atomic.AddUint64(&mmStat.afterStatCounter, 1)
 
-	params := &SyscallMockStatParams{s1, sp1}
+	if mmStat.inspectFuncStat != nil {
+		mmStat.inspectFuncStat(s1, sp1)
+	}
+
+	mm_params := &SyscallMockStatParams{s1, sp1}
 
 	// Record call args
 	mmStat.StatMock.mutex.Lock()
-	mmStat.StatMock.callArgs = append(mmStat.StatMock.callArgs, params)
+	mmStat.StatMock.callArgs = append(mmStat.StatMock.callArgs, mm_params)
 	mmStat.StatMock.mutex.Unlock()
 
 	for _, e := range mmStat.StatMock.expectations {
-		if minimock.Equal(e.params, params) {
+		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
@@ -151,17 +167,17 @@ func (mmStat *SyscallMock) Stat(s1 string, sp1 *syscall.Stat_t) (err error) {
 
 	if mmStat.StatMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmStat.StatMock.defaultExpectation.Counter, 1)
-		want := mmStat.StatMock.defaultExpectation.params
-		got := SyscallMockStatParams{s1, sp1}
-		if want != nil && !minimock.Equal(*want, got) {
-			mmStat.t.Errorf("SyscallMock.Stat got unexpected parameters, want: %#v, got: %#v%s\n", *want, got, minimock.Diff(*want, got))
+		mm_want := mmStat.StatMock.defaultExpectation.params
+		mm_got := SyscallMockStatParams{s1, sp1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmStat.t.Errorf("SyscallMock.Stat got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		results := mmStat.StatMock.defaultExpectation.results
-		if results == nil {
+		mm_results := mmStat.StatMock.defaultExpectation.results
+		if mm_results == nil {
 			mmStat.t.Fatal("No results are set for the SyscallMock.Stat")
 		}
-		return (*results).err
+		return (*mm_results).err
 	}
 	if mmStat.funcStat != nil {
 		return mmStat.funcStat(s1, sp1)
