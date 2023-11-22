@@ -2,6 +2,14 @@ name: Run CI Tests
 on: [push]
 jobs:
   run-tests:
+  run-copywrite:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-copywrite@v1.1.2
+      - name: verify copyright
+        run: |
+          copywrite --config=.copywrite.hcl headers --plan
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -10,5 +18,5 @@ jobs:
           version-file: go.mod
       - name: Run Go Test
         run: |
-          go test -v -race ./...
+          make test
 
