@@ -5,8 +5,6 @@ package sys
 
 import "syscall"
 
-//go:generate go run github.com/gojuno/minimock/v3/cmd/minimock -g -i Syscall -s _mock.go
-
 type Syscall interface {
 	Stat(string, *syscall.Stat_t) error
 }
