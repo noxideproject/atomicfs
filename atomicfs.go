@@ -1,10 +1,10 @@
-// Package atomicfs provides tools for doing all-or-nothing atomic filesystem operations in Go.
+// Package atomicfs provides tools for doing all-or-nothing atomic filesystem
+// operations in Go.
 package atomicfs
 
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,20 +15,21 @@ import (
 	"noxide.lol/go/atomicfs/sys"
 )
 
-// A FileWriter is used to read content from a source and
-// write it to a destination file, or die trying without producing
-// corrupt data where the destination file should have been.
+// A FileWriter is used to read content from a source and write it to a
+// destination file, or die trying without producing corrupt data where the
+// destination file should have been.
 //
-// The only design goal of a FileWriter is to be oriented around
-// correctness - performance is not a consideration.
+// The primary design goal of a FileWriter is correctness and reliability.
+//
+// Performance is not a consideration.
 type FileWriter interface {
-	// Write the contents of the io.Reader into a file at the
-	// destination filepath given.
-	Write(io.Reader, string) error
+	// WriteFile will write  the contents of the io.Reader into a file at the
+	// given destination filepath.
+	WriteFile(io.Reader, string) error
 }
 
-// Options are used to configure the behavior of a
-// FileWriter when it is used to write a file.
+// Options are used to configure the behavior of a FileWriter when it is used
+// to write a file.
 type Options struct {
 	// TmpDirectory is where tmp files are generated during
 	// the process of writing a file in preparation for executing
@@ -63,10 +64,10 @@ type Options struct {
 	Sys sys.Syscall
 }
 
-// NewFileWriter creates a new FileWriter backed by the configuration
-// settings in the provided Options. Creating a FileWriter always
-// succeeds, replacing empty options with sane defaults.
-func NewFileWriter(options Options) FileWriter {
+// New creates a new FileWriter backed by the configuration settings in the
+// provided Options. Creating a FileWriter always succeeds, replacing empty
+// options with sane defaults.
+func New(options Options) FileWriter {
 	tmpExt := strings.TrimPrefix(options.TmpExtension, ".")
 	if tmpExt == "" {
 		tmpExt = "tmp"
@@ -92,7 +93,7 @@ func NewFileWriter(options Options) FileWriter {
 		systemCalls = sys.New()
 	}
 
-	return &fsFileWriter{
+	return &writer{
 		tmpDir:   tmpDir,
 		tmpExt:   tmpExt,
 		fileMode: mode,
@@ -101,7 +102,7 @@ func NewFileWriter(options Options) FileWriter {
 	}
 }
 
-type fsFileWriter struct {
+type writer struct {
 	tmpDir   string
 	tmpExt   string
 	fileMode os.FileMode
@@ -109,7 +110,7 @@ type fsFileWriter struct {
 	sys      sys.Syscall
 }
 
-func (w *fsFileWriter) Write(source io.Reader, filePath string) error {
+func (w *writer) WriteFile(source io.Reader, filePath string) error {
 	fileDir := filepath.Dir(filePath)
 	fileName := filepath.Base(filePath)
 
@@ -138,7 +139,7 @@ func (w *fsFileWriter) Write(source io.Reader, filePath string) error {
 	return nil
 }
 
-func (w *fsFileWriter) checkDevice(fileDir string) error {
+func (w *writer) checkDevice(fileDir string) error {
 	var stat syscall.Stat_t
 	if err := w.sys.Stat(fileDir, &stat); err != nil {
 		return errors.Wrapf(err, "atomicfs: unable to stat destination directory %s", fileDir)
@@ -157,7 +158,7 @@ func (w *fsFileWriter) checkDevice(fileDir string) error {
 	return nil
 }
 
-func (w *fsFileWriter) rename(old, new string) error {
+func (w *writer) rename(old, new string) error {
 	if err := w.fs.Rename(old, new); err != nil {
 		return errors.Wrapf(err, "atomicfs: unable to rename tmp file %s to %s", old, new)
 	}
@@ -165,7 +166,7 @@ func (w *fsFileWriter) rename(old, new string) error {
 	return w.syncDir(new)
 }
 
-func (w *fsFileWriter) syncDir(name string) error {
+func (w *writer) syncDir(name string) error {
 	directory := filepath.Dir(name)
 	f, err := w.fs.Open(directory)
 	if err != nil {
@@ -183,10 +184,10 @@ func (w *fsFileWriter) syncDir(name string) error {
 	return nil
 }
 
-func (w *fsFileWriter) writeTmp(source io.Reader, name string) (string, error) {
+func (w *writer) writeTmp(source io.Reader, name string) (string, error) {
 	tmpName := fmt.Sprintf("%s.%s", name, w.tmpExt)
 
-	f, err := ioutil.TempFile(w.tmpDir, tmpName)
+	f, err := os.CreateTemp(w.tmpDir, tmpName)
 	if err != nil {
 		return "", errors.Wrapf(err, "atomicfs: unable to create tmp file in %s", w.tmpDir)
 	}
