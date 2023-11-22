@@ -1,0 +1,14 @@
+name: Run CI Tests
+on: [push]
+jobs:
+  run-tests:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-golang@v1
+        with:
+          version-file: go.mod
+      - name: Run Go Test
+        run: |
+          go test -v -race ./...
+
