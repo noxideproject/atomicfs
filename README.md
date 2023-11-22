@@ -7,12 +7,13 @@ A library for atomic filesystem operations in Go.
 [![BSD License](https://img.shields.io/github/license/noxideproject/atomicfs?color=g&style=flat-square)](https://github.com/noxideproject/atomicfs/blob/main/LICENSE)
 [![Run CI Tests](https://github.com/noxideproject/atomicfs/actions/workflows/ci.yaml/badge.svg)](https://github.com/noxideproject/atomicfs/actions/workflows/ci.yaml)
 
-# Project Overview
+# Overview
 
 The `noxide.lol/go/atomicfs` module provides a package for performing atomic
 filesystem operations.
 
 #### Reading material
+
 - https://rcrowley.org/2010/01/06/things-unix-can-do-atomically.html
 
 # Getting Started
@@ -22,7 +23,8 @@ The `atomicfs` package can be installed by running
 $ go get noxide.lol/go/atomicfs
 ```
 
-#### Example usage
+#### Examples
+
 ```go
 writer := atomicfs.NewFileWriter(atomicfs.Options{
     TmpDirectory: "/tmp",
