@@ -3,15 +3,13 @@ atomicfs
 
 A library for atomic filesystem operations in Go.
 
-[![Go Report Card](https://goreportcard.com/badge/gophers.dev/pkgs/atomicfs)](https://goreportcard.com/report/gophers.dev/pkgs/atomicfs)
-[![Build Status](https://travis-ci.com/shoenig/atomicfs.svg?branch=master)](https://travis-ci.com/shoenig/atomicfs)
-[![GoDoc](https://godoc.org/gophers.dev/pkgs/atomicfs?status.svg)](https://godoc.org/gophers.dev/pkgs/atomicfs)
-[![NetflixOSS Lifecycle](https://img.shields.io/osslifecycle/shoenig/atomicfs.svg)](OSSMETADATA)
-[![GitHub](https://img.shields.io/github/license/shoenig/atomicfs.svg)](LICENSE)
+[![Go Reference](https://pkg.go.dev/badge/noxide.lol/go/atomicfs.svg)](https://pkg.go.dev/noxide.lol/go/atomicfs)
+[![BSD License](https://img.shields.io/github/license/noxideproject/atomicfs?color=g&style=flat-square)](https://github.com/noxideproject/atomicfs/blob/main/LICENSE)
+[![Run CI Tests](https://github.com/noxideproject/atomicfs/actions/workflows/ci.yaml/badge.svg)](https://github.com/noxideproject/atomicfs/actions/workflows/ci.yaml)
 
 # Project Overview
 
-The `gophers.dev/pkgs/atomicfs` module provides a package for performing atomic
+The `noxide.lol/go/atomicfs` module provides a package for performing atomic
 filesystem operations.
 
 #### Reading material
@@ -21,11 +19,11 @@ filesystem operations.
 
 The `atomicfs` package can be installed by running
 ```bash
-$ go get gophers.dev/pkgs/atomicfs
+$ go get noxide.lol/go/atomicfs
 ```
 
 #### Example usage
-```golang
+```go
 writer := atomicfs.NewFileWriter(atomicfs.Options{
     TmpDirectory: "/tmp",
     Mode:         0600,
@@ -36,9 +34,11 @@ _ = writer.Write(input, output)
 
 # Contributing
 
-The `gophers.dev/pkgs/atomicfs` module is always improving with new features
-and error corrections. For contributing bug fixes and new features please file an issue.
+The `noxide.lol/go/atomicfs` module is always improving with new features and
+error corrections. For contributing bug fixes and new features please file an
+issue.
 
 # License
 
-The `gophers.dev/pkgs/atomicfs` module is open source under the [BSD-3-Clause](LICENSE) license.
+The `noxide.lol/go/atomicfs` module is open source under the [BSD-3-Clause](LICENSE)
+license.
