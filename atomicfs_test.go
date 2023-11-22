@@ -26,6 +26,6 @@ func TestFileWriter_WriteFile(t *testing.T) {
 
 	input := strings.NewReader("foobar")
 	filePath := filepath.Join(tmpDir, "out.txt")
-	err := writer.WriteFile(input, filePath)
+	err := writer.WriteFile(filePath, input)
 	must.NoError(t, err)
 }
