@@ -1,5 +1,5 @@
 // Package atomicfs provides tools for doing all-or-nothing atomic filesystem operations in Go.
-package atomicfs // import "gophers.dev/pkgs/atomicfs"
+package atomicfs
 
 import (
 	"fmt"
@@ -11,9 +11,8 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
-
-	"gophers.dev/pkgs/atomicfs/fs"
-	"gophers.dev/pkgs/atomicfs/sys"
+	"noxide.lol/go/atomicfs/fs"
+	"noxide.lol/go/atomicfs/sys"
 )
 
 // A FileWriter is used to read content from a source and
