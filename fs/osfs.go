@@ -1,3 +1,6 @@
+// Copyright (c) NOXIDE.LOL
+// SPDX-License-Identifier: BSD-3-Clause
+
 package fs
 
 import "os"

@@ -1,3 +1,6 @@
+// Copyright (c) NOXIDE.LOL
+// SPDX-License-Identifier: BSD-3-Clause
+
 // Package atomicfs provides tools for doing all-or-nothing atomic filesystem
 // operations in Go.
 package atomicfs
