@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 	"noxide.lol/go/atomicfs/fs"
 	"noxide.lol/go/atomicfs/sys"
 )
@@ -24,5 +24,5 @@ func TestFileWriter_WriteFile(t *testing.T) {
 	input := strings.NewReader("foobar")
 	filePath := filepath.Join(tmpDir, "out.txt")
 	err := writer.WriteFile(input, filePath)
-	require.NoError(t, err)
+	must.NoError(t, err)
 }
