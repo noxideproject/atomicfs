@@ -3,6 +3,7 @@
 package atomicfs
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -10,7 +11,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/pkg/errors"
 	"noxide.lol/go/atomicfs/fs"
 	"noxide.lol/go/atomicfs/sys"
 )
@@ -142,17 +142,17 @@ func (w *writer) WriteFile(source io.Reader, filePath string) error {
 func (w *writer) checkDevice(fileDir string) error {
 	var stat syscall.Stat_t
 	if err := w.sys.Stat(fileDir, &stat); err != nil {
-		return errors.Wrapf(err, "atomicfs: unable to stat destination directory %s", fileDir)
+		return fmt.Errorf("atomicfs: unable to stat destination directory %s: %w", fileDir, err)
 	}
 	fileDirDeviceID := stat.Dev
 
 	if err := w.sys.Stat(w.tmpDir, &stat); err != nil {
-		return errors.Wrapf(err, "atomicfs: unable to stat tmp directory %s", w.tmpDir)
+		return fmt.Errorf("atomicfs: unable to stat tmp directory %s: %w", w.tmpDir, err)
 	}
 	tmpDirDeviceID := stat.Dev
 
 	if fileDirDeviceID != tmpDirDeviceID {
-		return errors.Errorf("atomicfs: tmp & destination directories not on same device")
+		return errors.New("atomicfs: tmp & destination directories not on same device")
 	}
 
 	return nil
@@ -160,9 +160,8 @@ func (w *writer) checkDevice(fileDir string) error {
 
 func (w *writer) rename(old, new string) error {
 	if err := w.fs.Rename(old, new); err != nil {
-		return errors.Wrapf(err, "atomicfs: unable to rename tmp file %s to %s", old, new)
+		return fmt.Errorf("atomicfs: unable to rename tmp file %s to %s: %w", old, new, err)
 	}
-
 	return w.syncDir(new)
 }
 
@@ -170,15 +169,15 @@ func (w *writer) syncDir(name string) error {
 	directory := filepath.Dir(name)
 	f, err := w.fs.Open(directory)
 	if err != nil {
-		return errors.Wrapf(err, "atomicfs: unable to open directory %s for syncing", directory)
+		return fmt.Errorf("atomicfs: unable to open directory %s for syncing: %w", directory, err)
 	}
 
 	if err := f.Sync(); err != nil {
-		return errors.Wrapf(err, "atomicfs: unable to sync directory %s", directory)
+		return fmt.Errorf("atomicfs: unable to sync directory %s: %w", directory, err)
 	}
 
 	if err := f.Close(); err != nil {
-		return errors.Wrapf(err, "atomicfs: unable to close directory %s after syncing", directory)
+		return fmt.Errorf("atomicfs: unable to close directory %s after syncing: %w", directory, err)
 	}
 
 	return nil
@@ -189,27 +188,27 @@ func (w *writer) writeTmp(source io.Reader, name string) (string, error) {
 
 	f, err := os.CreateTemp(w.tmpDir, tmpName)
 	if err != nil {
-		return "", errors.Wrapf(err, "atomicfs: unable to create tmp file in %s", w.tmpDir)
+		return "", fmt.Errorf("atomicfs: unable to create tmp file in %s: %w", w.tmpDir, err)
 	}
 	tmpPath := f.Name()
 
 	if err := f.Chmod(w.fileMode); err != nil {
 		_ = f.Close()
-		return tmpPath, errors.Wrapf(err, "atomicfs: unable to chmod tmp file in %s", w.tmpDir)
+		return tmpPath, fmt.Errorf("atomicfs: unable to chmod tmp file in %s: %w", w.tmpDir, err)
 	}
 
 	if _, err := io.Copy(f, source); err != nil {
 		_ = f.Close()
-		return tmpPath, errors.Wrapf(err, "atomicfs: unable to copy source into tmp file in %s", w.tmpDir)
+		return tmpPath, fmt.Errorf("atomicfs: unable to copy source into tmp file in %s: %w", w.tmpDir, err)
 	}
 
 	if err := f.Sync(); err != nil {
 		_ = f.Close()
-		return tmpPath, errors.Wrapf(err, "atomicfs: unable to fsync tmp file in %s", w.tmpDir)
+		return tmpPath, fmt.Errorf("atomicfs: unable to fsync tmp file in %s: %w", w.tmpDir, err)
 	}
 
 	if err := f.Close(); err != nil {
-		return tmpPath, errors.Wrapf(err, "atomicfs: unable to close tmp file in %s", w.tmpDir)
+		return tmpPath, fmt.Errorf("atomicfs: unable to close tmp file in %s: %w", w.tmpDir, err)
 	}
 
 	return tmpPath, nil
