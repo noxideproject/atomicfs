@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-//go:generate go run github.com/gojuno/minimock/v3/cmd/minimock -g -i FileSystem -s _mock.go
-
 type FileSystem interface {
 	Create(name string) (File, error)
 	Mkdir(name string, perm os.FileMode) error
@@ -21,8 +19,6 @@ type FileSystem interface {
 	Rename(old, new string) error
 	Stat(name string) (os.FileInfo, error)
 }
-
-//go:generate go run github.com/gojuno/minimock/v3/cmd/minimock -g -i File -s _mock.go
 
 type File interface {
 	Chdir() error
