@@ -9,6 +9,17 @@ jobs:
       - name: verify copyright
         run: |
           copywrite --config=.copywrite.hcl headers --plan
+  run-lint:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-golang@v1
+        with:
+          version-file: go.mod
+      - uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.55.2
+          skip-cache: true
   run-tests:
     runs-on: ubuntu-22.04
     steps:
