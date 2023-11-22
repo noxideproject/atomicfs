@@ -1,7 +1,6 @@
 name: Run CI Tests
 on: [push]
 jobs:
-  run-tests:
   run-copywrite:
     runs-on: ubuntu-22.04
     steps:
@@ -10,6 +9,7 @@ jobs:
       - name: verify copyright
         run: |
           copywrite --config=.copywrite.hcl headers --plan
+  run-tests:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
