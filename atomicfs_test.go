@@ -10,9 +10,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"gophers.dev/pkgs/atomicfs/fs"
-	"gophers.dev/pkgs/atomicfs/sys"
+	"noxide.lol/go/atomicfs/fs"
+	"noxide.lol/go/atomicfs/sys"
 )
 
 func setup(t *testing.T) string {

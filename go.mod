@@ -1,4 +1,6 @@
-module gophers.dev/pkgs/atomicfs
+module noxide.lol/go/atomicfs
+
+go 1.21
 
 require (
 	github.com/gojuno/minimock/v3 v3.0.4
@@ -6,4 +8,7 @@ require (
 	github.com/stretchr/testify v1.3.0
 )
 
-go 1.12
+require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+)
