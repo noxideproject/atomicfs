@@ -16,7 +16,7 @@ type FileSystem interface {
 	OpenFile(name string, flag int, perm os.FileMode) (File, error)
 	Remove(name string) error
 	RemoveAll(path string) error
-	Rename(old, new string) error
+	Rename(previous, next string) error
 	Stat(name string) (os.FileInfo, error)
 }
 
