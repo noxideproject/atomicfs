@@ -28,7 +28,7 @@ import (
 type FileWriter interface {
 	// WriteFile will write  the contents of the io.Reader into a file at the
 	// given destination filepath.
-	WriteFile(io.Reader, string) error
+	WriteFile(string, io.Reader) error
 }
 
 // Options are used to configure the behavior of a FileWriter when it is used
@@ -113,7 +113,7 @@ type writer struct {
 	sys      sys.Syscall
 }
 
-func (w *writer) WriteFile(source io.Reader, filePath string) error {
+func (w *writer) WriteFile(filePath string, source io.Reader) error {
 	fileDir := filepath.Dir(filePath)
 	fileName := filepath.Base(filePath)
 

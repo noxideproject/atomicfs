@@ -5,7 +5,7 @@ default: test
 .PHONY: test
 test: vet
 	@echo "==> Running Tests ..."
-	@go test -v -race ./...
+	@go test -count=1 -v -race ./...
 
 .PHONY: copywrite
 copywrite:
