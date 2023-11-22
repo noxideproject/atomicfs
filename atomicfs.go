@@ -161,11 +161,11 @@ func (w *writer) checkDevice(fileDir string) error {
 	return nil
 }
 
-func (w *writer) rename(old, new string) error {
-	if err := w.fs.Rename(old, new); err != nil {
-		return fmt.Errorf("atomicfs: unable to rename tmp file %s to %s: %w", old, new, err)
+func (w *writer) rename(previous, next string) error {
+	if err := w.fs.Rename(previous, next); err != nil {
+		return fmt.Errorf("atomicfs: unable to rename tmp file %s to %s: %w", previous, next, err)
 	}
-	return w.syncDir(new)
+	return w.syncDir(next)
 }
 
 func (w *writer) syncDir(name string) error {

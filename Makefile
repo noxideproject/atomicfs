@@ -16,3 +16,8 @@ copywrite:
 vet:
 	@echo "==> Vet Go sources ..."
 	@go vet ./...
+
+.PHONY: lint
+lint: vet
+	@echo "==> Lint ..."
+	@golangci-lint run
