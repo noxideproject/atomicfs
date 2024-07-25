@@ -4,8 +4,8 @@ atomicfs
 A library for atomic filesystem operations in Go.
 
 [![Go Reference](https://pkg.go.dev/badge/noxide.lol/go/atomicfs.svg)](https://pkg.go.dev/noxide.lol/go/atomicfs)
-[![BSD License](https://img.shields.io/github/license/noxideproject/atomicfs?color=g&style=flat-square)](https://github.com/noxideproject/atomicfs/blob/main/LICENSE)
-[![Run CI Tests](https://github.com/noxideproject/atomicfs/actions/workflows/ci.yaml/badge.svg)](https://github.com/noxideproject/atomicfs/actions/workflows/ci.yaml)
+[![License](https://img.shields.io/github/license/noxideproject/atomicfs?color=7C00D8&style=flat-square&label=License)](https://github.com/noxideproject/atomicfs/blob/main/LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/noxideproject/atomicfs/ci.yaml?style=flat-square&color=0FAA07&label=Tests)](https://github.com/noxideproject/atomicfs/actions/workflows/ci.yaml)
 
 # Overview
 
